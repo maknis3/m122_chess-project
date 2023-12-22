@@ -1,10 +1,12 @@
 import pygame
 import sys
+from pieces import ChessPiece 
 
 WIDTH, HEIGHT = 800, 800
 WHITE = (255, 255, 255)
 GRAY = (169, 169, 169)
-DARK_GRAY = (64, 64, 64)
+BLUE = (0, 0, 255)
+RED = (255, 0, 0)
 
 # Initialize the screen
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -12,18 +14,18 @@ pygame.display.set_caption("Chessboard")
 
 # Load chess piece images
 pieces = {
-    "wp": pygame.image.load("images/white-pawn.png"),
-    "wki": pygame.image.load("images/white-king.png"),
-    "wq": pygame.image.load("images/white-queen.png"),
-    "wr": pygame.image.load("images/white-rook.png"),
-    "wb": pygame.image.load("images/white-bishop.png"),
-    "wkn": pygame.image.load("images/white-knight.png"),
-    "bp": pygame.image.load("images/black-pawn.png"),
-    "bki": pygame.image.load("images/black-king.png"),
-    "bq": pygame.image.load("images/black-queen.png"),
-    "br": pygame.image.load("images/black-rook.png"),
-    "bb": pygame.image.load("images/black-bishop.png"),
-    "bkn": pygame.image.load("images/black-knight.png")
+    ChessPiece.PAWN_WHITE: pygame.image.load("images/white-pawn.png"),
+    ChessPiece.KING_WHITE: pygame.image.load("images/white-king.png"),
+    ChessPiece.QUEEN_WHITE: pygame.image.load("images/white-queen.png"),
+    ChessPiece.ROOK_WHITE: pygame.image.load("images/white-rook.png"),
+    ChessPiece.BISHOP_WHITE: pygame.image.load("images/white-bishop.png"),
+    ChessPiece.KNIGHT_WHITE: pygame.image.load("images/white-knight.png"),
+    ChessPiece.PAWN_BLACK: pygame.image.load("images/black-pawn.png"),
+    ChessPiece.KING_BLACK: pygame.image.load("images/black-king.png"),
+    ChessPiece.QUEEN_BLACK: pygame.image.load("images/black-queen.png"),
+    ChessPiece.ROOK_BLACK: pygame.image.load("images/black-rook.png"),
+    ChessPiece.BISHOP_BLACK: pygame.image.load("images/black-bishop.png"),
+    ChessPiece.KNIGHT_BLACK: pygame.image.load("images/black-knight.png")
 }
 
 class Board:
@@ -31,26 +33,26 @@ class Board:
         self.rows = 8
         self.cols = 8
         self.square_size = WIDTH // self.cols
-        self.colors = [(255, 255, 255), (169, 169, 169)]
-        self.chess_pieces = [
-            ["wr", "wkn", "wb", "wq", "wki", "wb", "wkn", "wr"],
-            ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
-            ["", "", "", "", "", "", "", ""],
-            ["", "", "", "", "", "", "", ""],
-            ["", "", "", "", "", "", "", ""],
-            ["", "", "", "", "", "", "", ""],
-            ["bp", "bp", "bp", "bp", "bp", "bp", "bp", "bp"],
-            ["br", "bkn", "bb", "bq", "bki", "bb", "bkn", "br"]
-        ]
+        self.colors = [WHITE, GRAY]
 
-    def update_board(self):
+    def update_board(self, chess_pieces, clicked_square, possible_moves):
         for row in range(self.rows):
             for col in range(self.cols):
                 color = self.colors[(row + col) % 2]
                 pygame.draw.rect(screen, color, (col * self.square_size, row * self.square_size, self.square_size, self.square_size))
 
-                piece = self.chess_pieces[row][col]
+                piece = chess_pieces[row][col]
+                
                 if piece:
                     piece_image = pieces.get(piece)
                     if piece_image:
                         screen.blit(piece_image, (col * self.square_size, row * self.square_size))
+
+        if clicked_square is not None:
+            row, col = clicked_square
+            pygame.draw.rect(screen, RED, (col * self.square_size, row * self.square_size, self.square_size, self.square_size), 3)  # Highlight the clicked square in red
+            
+        for square in possible_moves:
+            row, col = square
+            pygame.draw.rect(screen, BLUE, (col * self.square_size, row * self.square_size, self.square_size, self.square_size), 3)
+            
