@@ -1,10 +1,7 @@
-import os
 import pygame
-from pygame.locals import *
 import sys
 from board import Board
-from pieces import ChessPiece
-from pieces import Color
+from pieces import ChessPiece, Color
 
 pygame.init()
 
@@ -25,6 +22,7 @@ class Game:
         self.possible_moves = []
         self.current_player = Color.WHITE
         self.move_counter = 0
+
 
     def start_game(self):
         running = True
@@ -48,7 +46,7 @@ class Game:
                         self.move_counter += 1
                     elif self.is_valid_square(clicked_square):
                         piece = self.board_matrix[row][col]
-                        if piece.value[0] == self.current_player.value:  # Use .value to compare the Color enum
+                        if piece.value[0] == self.current_player.value:
                             selected_square = clicked_square
                             self.possible_moves = self.calculate_possible_moves(selected_square)
 
@@ -59,7 +57,6 @@ class Game:
         pygame.quit()
         sys.exit()
 
-        
     def is_valid_square(self, square):
         row, col = square
         return self.board_matrix[row][col] != ChessPiece.EMPTY
@@ -73,157 +70,132 @@ class Game:
         possible_moves = []
 
         if piece == ChessPiece.PAWN_WHITE:
-            if row - 1 >= 0 and self.board_matrix[row - 1][col] == ChessPiece.EMPTY:
-                possible_moves.append((row - 1, col))
-            if row == 6 and self.board_matrix[row - 2][col] == ChessPiece.EMPTY:
-                possible_moves.append((row - 2, col))
-            
-            # Pawn captures diagonally
-            if col - 1 >= 0 and self.is_opponent_piece(piece, self.board_matrix[row - 1][col - 1]):
-                possible_moves.append((row - 1, col - 1))
-            if col + 1 < 8 and self.is_opponent_piece(piece, self.board_matrix[row - 1][col + 1]):
-                possible_moves.append((row - 1, col + 1))
+            possible_moves += self.calculate_pawn_moves(row, col, -1)
             
         elif piece == ChessPiece.PAWN_BLACK:
-            if row + 1 < 8 and self.board_matrix[row + 1][col] == ChessPiece.EMPTY:
-                possible_moves.append((row + 1, col))
-            if row == 1:
-                if self.board_matrix[row + 1][col] == ChessPiece.EMPTY:
-                    possible_moves.append((row + 1, col))
-                if self.board_matrix[row + 2][col] == ChessPiece.EMPTY:
-                    possible_moves.append((row + 2, col))
-            
-            # Pawn captures diagonally
-            if col - 1 >= 0 and self.is_opponent_piece(piece, self.board_matrix[row + 1][col - 1]):
-                possible_moves.append((row + 1, col - 1))
-            if col + 1 < 8 and self.is_opponent_piece(piece, self.board_matrix[row + 1][col + 1]):
-                possible_moves.append((row + 1, col + 1))
+            possible_moves += self.calculate_pawn_moves(row, col, 1)
         
-        elif piece == ChessPiece.ROOK_WHITE or piece == ChessPiece.ROOK_BLACK:
-            # Rook can move horizontally and vertically
-            for r in range(row - 1, -1, -1):  # Up
-                if self.is_opponent_piece(piece, self.board_matrix[r][col]):
-                    possible_moves.append((r, col))
-                    break
-                if self.board_matrix[r][col] != ChessPiece.EMPTY:
-                    break
-
-            for r in range(row + 1, 8):  # Down
-                if self.is_opponent_piece(piece, self.board_matrix[r][col]):
-                    possible_moves.append((r, col))
-                    break
-                if self.board_matrix[r][col] != ChessPiece.EMPTY:
-                    break
-
-            for c in range(col - 1, -1, -1):  # Left
-                if self.is_opponent_piece(piece, self.board_matrix[row][c]):
-                    possible_moves.append((row, c))
-                    break
-                if self.board_matrix[row][c] != ChessPiece.EMPTY:
-                    break
-
-            for c in range(col + 1, 8):  # Right
-                if self.is_opponent_piece(piece, self.board_matrix[row][c]):
-                    possible_moves.append((row, c))
-                    break
-                if self.board_matrix[row][c] != ChessPiece.EMPTY:
-                    break
-
-        elif piece == ChessPiece.KNIGHT_WHITE or piece == ChessPiece.KNIGHT_BLACK:
-            # Knight moves in an L-shape (8 possible moves)
-            moves = [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]
-            for dr, dc in moves:
-                r, c = row + dr, col + dc
-                if 0 <= r < 8 and 0 <= c < 8:
-                    target_piece = self.board_matrix[r][c]
-                    if target_piece == ChessPiece.EMPTY or self.is_opponent_piece(piece, target_piece):
-                        possible_moves.append((r, c))
-
-        elif piece == ChessPiece.BISHOP_WHITE or piece == ChessPiece.BISHOP_BLACK:
-            # Bishop can move diagonally
-            directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-            for dr, dc in directions:
-                r, c = row + dr, col + dc
-                while 0 <= r < 8 and 0 <= c < 8:
-                    target_piece = self.board_matrix[r][c]
-                    if target_piece == ChessPiece.EMPTY or self.is_opponent_piece(piece, target_piece):
-                        possible_moves.append((r, c))
-                        if target_piece != ChessPiece.EMPTY:
-                            break
-                    else:
-                        break
-                    r += dr
-                    c += dc
-
-        elif piece == ChessPiece.QUEEN_WHITE or piece == ChessPiece.QUEEN_BLACK:
-            # Queen can move horizontally, vertically, and diagonally (combining rook and bishop moves)
-            for r in range(row - 1, -1, -1):  # Up
-                target_piece = self.board_matrix[r][col]
-                if target_piece == ChessPiece.EMPTY:
-                    possible_moves.append((r, col))
-                elif self.is_opponent_piece(piece, target_piece):
-                    possible_moves.append((r, col))
-                    break
-                else:
-                    break
-                
-            for r in range(row + 1, 8):  # Down
-                target_piece = self.board_matrix[r][col]
-                if target_piece == ChessPiece.EMPTY:
-                    possible_moves.append((r, col))
-                elif self.is_opponent_piece(piece, target_piece):
-                    possible_moves.append((r, col))
-                    break
-                else:
-                    break
-                
-            for c in range(col - 1, -1, -1):  # Left
-                target_piece = self.board_matrix[row][c]
-                if target_piece == ChessPiece.EMPTY:
-                    possible_moves.append((row, c))
-                elif self.is_opponent_piece(piece, target_piece):
-                    possible_moves.append((row, c))
-                    break
-                else:
-                    break
-                
-            for c in range(col + 1, 8):  # Right
-                target_piece = self.board_matrix[row][c]
-                if target_piece == ChessPiece.EMPTY:
-                    possible_moves.append((row, c))
-                elif self.is_opponent_piece(piece, target_piece):
-                    possible_moves.append((row, c))
-                    break
-                else:
-                    break
-                
-            directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # Diagonal
-            for dr, dc in directions:
-                r, c = row + dr, col + dc
-                while 0 <= r < 8 and 0 <= c < 8:
-                    target_piece = self.board_matrix[r][c]
-                    if target_piece == ChessPiece.EMPTY:
-                        possible_moves.append((r, c))
-                    elif self.is_opponent_piece(piece, target_piece):
-                        possible_moves.append((r, c))
-                        break
-                    else:
-                        break
-                    r += dr
-                    c += dc
-
-        elif piece == ChessPiece.KING_WHITE or piece == ChessPiece.KING_BLACK:
-            # King can move one step in any direction
-            moves = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-            for dr, dc in moves:
-                r, c = row + dr, col + dc
-                if 0 <= r < 8 and 0 <= c < 8:
-                    target_piece = self.board_matrix[r][c]
-                    if target_piece == ChessPiece.EMPTY or self.is_opponent_piece(piece, target_piece):
-                        possible_moves.append((r, c))
-
+        elif piece in (ChessPiece.ROOK_WHITE, ChessPiece.ROOK_BLACK):
+            possible_moves += self.calculate_rook_moves(row, col)
+        
+        elif piece in (ChessPiece.KNIGHT_WHITE, ChessPiece.KNIGHT_BLACK):
+            possible_moves += self.calculate_knight_moves(row, col)
+        
+        elif piece in (ChessPiece.BISHOP_WHITE, ChessPiece.BISHOP_BLACK):
+            possible_moves += self.calculate_bishop_moves(row, col)
+        
+        elif piece in (ChessPiece.QUEEN_WHITE, ChessPiece.QUEEN_BLACK):
+            possible_moves += self.calculate_rook_moves(row, col)
+            possible_moves += self.calculate_bishop_moves(row, col)
+        
+        elif piece in (ChessPiece.KING_WHITE, ChessPiece.KING_BLACK):
+            possible_moves += self.calculate_king_moves(row, col)
 
         return possible_moves
+    
+    def calculate_pawn_moves(self, row, col, direction):
+        possible_moves = []
+        
+        if 0 <= row + direction < 8 and self.board_matrix[row + direction][col] == ChessPiece.EMPTY:
+            possible_moves.append((row + direction, col))
+            
+            if row == 6 and direction == -1 and self.board_matrix[row + direction * 2][col] == ChessPiece.EMPTY:
+                possible_moves.append((row + direction * 2, col))
+            elif row == 1 and direction == 1 and self.board_matrix[row + direction * 2][col] == ChessPiece.EMPTY:
+                possible_moves.append((row + direction * 2, col))
+            
+        for d_col in [-1, 1]:
+            if 0 <= row + direction < 8 and 0 <= col + d_col < 8:
+                target_piece = self.board_matrix[row + direction][col + d_col]
+                if target_piece != ChessPiece.EMPTY and target_piece.value[0] != self.current_player.value:
+                    possible_moves.append((row + direction, col + d_col))
+        
+        return possible_moves
+    
+    def calculate_rook_moves(self, row, col):
+        possible_moves = []
+        
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            r, c = row + dr, col + dc
+            while 0 <= r < 8 and 0 <= c < 8:
+                target_piece = self.board_matrix[r][c]
+                if target_piece == ChessPiece.EMPTY:
+                    possible_moves.append((r, c))
+                elif self.is_opponent_piece(self.board_matrix[row][col], target_piece):
+                    possible_moves.append((r, c))
+                    break
+                else:
+                    break
+                r += dr
+                c += dc
+        
+        return possible_moves
+    
+    def calculate_knight_moves(self, row, col):
+        moves = [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]
+        possible_moves = []
+        
+        for dr, dc in moves:
+            r, c = row + dr, col + dc
+            if 0 <= r < 8 and 0 <= c < 8:
+                target_piece = self.board_matrix[r][c]
+                if target_piece == ChessPiece.EMPTY or self.is_opponent_piece(self.board_matrix[row][col], target_piece):
+                    possible_moves.append((r, c))
+        
+        return possible_moves
+    
+    def calculate_bishop_moves(self, row, col):
+        directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        possible_moves = []
+        
+        for dr, dc in directions:
+            r, c = row + dr, col + dc
+            while 0 <= r < 8 and 0 <= c < 8:
+                target_piece = self.board_matrix[r][c]
+                if target_piece == ChessPiece.EMPTY:
+                    possible_moves.append((r, c))
+                elif self.is_opponent_piece(self.board_matrix[row][col], target_piece):
+                    possible_moves.append((r, c))
+                    break
+                else:
+                    break
+                r += dr
+                c += dc
+        
+        return possible_moves
+    
+    def calculate_king_moves(self, row, col):
+        moves = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+        possible_moves = []
+        
+        for dr, dc in moves:
+            r, c = row + dr, col + dc
+            if 0 <= r < 8 and 0 <= c < 8:
+                target_piece = self.board_matrix[r][c]
+                opponent_color = Color.BLACK if self.board_matrix[row][col] == ChessPiece.KING_WHITE else Color.WHITE
+                if target_piece == ChessPiece.EMPTY or self.is_opponent_piece(self.board_matrix[row][col], target_piece):
+                    # Check if the square is not attacked by an opponent
+                    if not self.square_attacked_by_opponent((r, c), opponent_color):
+                        possible_moves.append((r, c))
+        
+        return possible_moves
+    
+    def square_attacked_by_opponent(self, square, opponent_color):
+        target_row, target_col = square
+
+        if opponent_color == self.current_player:
+            return False
+        
+        for row in range(8):
+            for col in range(8):
+                piece = self.board_matrix[row][col]
+
+                if piece != ChessPiece.EMPTY and piece.value[0] == opponent_color.value:
+                    moves = self.calculate_possible_moves((row, col))
+                    if square in moves:
+                        return True
+
+        return False
     
     def move_piece(self, from_square, to_square):
         from_row, from_col = from_square
