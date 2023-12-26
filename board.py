@@ -7,13 +7,15 @@ WHITE = (255, 255, 255)
 GRAY = (169, 169, 169)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
+ORANGE = (255, 165, 0)
+GREEN = (0, 255, 0)
 
 class Board:
     def __init__(self):
         self.rows = 8
         self.cols = 8
-        self.square_size = WIDTH // self.cols
         self.colors = [WHITE, GRAY]
+        self.square_size = WIDTH // self.cols
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Chessboard")
         self.pieces_images = {
@@ -31,10 +33,14 @@ class Board:
             ChessPiece.KNIGHT_BLACK: pygame.image.load("images/black-knight.png")
         }
 
-    def update_board(self, chess_pieces, clicked_square, possible_moves):
+    def update_board(self, chess_pieces, clicked_square, possible_moves, check_square, winner_square):
         for row in range(self.rows):
             for col in range(self.cols):
                 color = self.colors[(row + col) % 2]
+                if (row, col) == check_square:
+                    color = ORANGE
+                elif (row, col) == winner_square:
+                    color = GREEN
                 pygame.draw.rect(self.screen, color, (col * self.square_size, row * self.square_size, self.square_size, self.square_size))
 
                 piece = chess_pieces[row][col]
@@ -89,7 +95,7 @@ class Board:
                 pieces = (ChessPiece.ROOK_WHITE, ChessPiece.KNIGHT_WHITE, ChessPiece.BISHOP_WHITE, ChessPiece.QUEEN_WHITE)
             
             for col in range(4):
-                color = self.colors[(col) % 2]
+                color = self.colors[col % 2]
                 pygame.draw.rect(self.screen, color, (col * self.square_size, 0, self.square_size, self.square_size))
                 piece_image = self.pieces_images.get(pieces[col])
                 if piece_image:
