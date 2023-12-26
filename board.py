@@ -51,3 +51,48 @@ class Board:
         for square in possible_moves:
             row, col = square
             pygame.draw.rect(self.screen, BLUE, (col * self.square_size, row * self.square_size, self.square_size, self.square_size), 3)
+            
+    def reset_screen(self):
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        pygame.display.set_caption("Chessboard")
+            
+    def select_promotion_piece(self, current_player):
+
+        promotion_screen = pygame.display.set_mode((400, 100))
+        pygame.display.set_caption("Promotion")
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    return None
+                if event.type == MOUSEBUTTONDOWN:
+                    mouse_x, mouse_y = pygame.mouse.get_pos()
+                    if 0 <= mouse_x <= 100:
+                        self.reset_screen()
+                        return ChessPiece.ROOK_BLACK if current_player == Color.BLACK else ChessPiece.ROOK_WHITE 
+                    elif 100 < mouse_x <= 200:
+                        self.reset_screen()
+                        return ChessPiece.KNIGHT_BLACK if current_player == Color.BLACK else ChessPiece.KNIGHT_WHITE 
+                    elif 200 < mouse_x <= 300:
+                        self.reset_screen()
+                        return ChessPiece.BISHOP_BLACK if current_player == Color.BLACK else ChessPiece.BISHOP_WHITE 
+                    elif 300 < mouse_x <= 400:
+                        self.reset_screen()
+                        return ChessPiece.QUEEN_BLACK if current_player == Color.BLACK else ChessPiece.QUEEN_WHITE 
+
+            promotion_screen.fill(WHITE)
+            
+            if current_player == Color.BLACK:
+                pieces = (ChessPiece.ROOK_BLACK, ChessPiece.KNIGHT_BLACK, ChessPiece.BISHOP_BLACK,  ChessPiece.QUEEN_BLACK)
+            else:
+                pieces = (ChessPiece.ROOK_WHITE, ChessPiece.KNIGHT_WHITE, ChessPiece.BISHOP_WHITE, ChessPiece.QUEEN_WHITE)
+            
+            for col in range(4):
+                color = self.colors[(col) % 2]
+                pygame.draw.rect(self.screen, color, (col * self.square_size, 0, self.square_size, self.square_size))
+                piece_image = self.pieces_images.get(pieces[col])
+                if piece_image:
+                    self.screen.blit(piece_image, (col * self.square_size, 0))
+
+            pygame.display.flip()
