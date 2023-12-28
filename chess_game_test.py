@@ -1,5 +1,5 @@
 import unittest
-from game import ChessGame
+from chess_game import ChessGame
 from pieces import ChessPiece, Color
 from board import Board
 
@@ -237,17 +237,37 @@ class TestChessGame(unittest.TestCase):
             [ChessPiece.EMPTY] * 8,
             [ChessPiece.KING_BLACK, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.PAWN_BLACK, ChessPiece.KNIGHT_BLACK, ChessPiece.EMPTY],
             [ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.QUEEN_BLACK],
-            [ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.PAWN_WHITE, ChessPiece.EMPTY, ChessPiece.EMPTY],
+            [ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.PAWN_WHITE, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY],
             [ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.KING_WHITE, ChessPiece.EMPTY],
             [ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.ROOK_BLACK, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY],
             [ChessPiece.EMPTY] * 8,
             [ChessPiece.EMPTY] * 8
             ]
         self.assertFalse(self.game.is_checkmate(self.game.board_matrix, self.game.en_passant_square))
-        self.game.board_matrix, self.game.en_passant_square = self.game.move_piece((1, 5), (3, 5), self.game.board_matrix, None, None, True)
+        self.game.board_matrix, self.game.en_passant_square = self.game.move_piece((1, 5), (3, 5), self.game.board_matrix, self.game.en_passant_square, None, True)
         self.assertTrue(self.game.is_in_check(self.game.board_matrix))
         self.assertFalse(self.game.is_checkmate(self.game.board_matrix, self.game.en_passant_square))
 
+    def test_detects_stalemate(self):
+        self.game.board_matrix = [
+            [ChessPiece.KING_BLACK, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY],
+            [ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.KING_WHITE, ChessPiece.EMPTY],
+            [ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.QUEEN_WHITE, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY, ChessPiece.EMPTY],
+            [ChessPiece.EMPTY] * 8,
+            [ChessPiece.EMPTY] * 8,
+            [ChessPiece.EMPTY] * 8,
+            [ChessPiece.EMPTY] * 8,
+            [ChessPiece.EMPTY] * 8
+            ]
+        self.assertFalse(self.game.is_stalemate(self.game.board_matrix, self.game.en_passant_square), "White should not be in stalemate.")
+        self.game.switch_current_player()
+        self.assertFalse(self.game.is_stalemate(self.game.board_matrix, self.game.en_passant_square), "Black should not be in stalemate.")
+        self.game.board_matrix, self.game.en_passant_square = self.game.move_piece((2, 3), (2, 1), self.game.board_matrix, self.game.en_passant_square, None, True)
+        self.assertTrue(self.game.is_stalemate(self.game.board_matrix, self.game.en_passant_square), "Black should be in stalemate.")
+        self.assertEqual(self.game.calculate_possible_moves(((0,0)), self.game.board_matrix, self.game.en_passant_square), [], "Assert no moves available for black King.")
+        self.game.switch_current_player()
+        self.assertFalse(self.game.is_stalemate(self.game.board_matrix, self.game.en_passant_square), "White should not be in stalemate.")
+        
 
 if __name__ == '__main__':
     unittest.main()

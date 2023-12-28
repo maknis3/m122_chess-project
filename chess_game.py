@@ -1,6 +1,7 @@
 import pygame
 import sys
 import copy
+from collections import Counter
 from board import Board
 from pieces import ChessPiece, Color
 
@@ -21,6 +22,8 @@ class ChessGame:
         self.en_passant_square = None
         self.check_square = None
         self.winner_square = None
+        self.last_capture_or_pawn_move = 0
+        self.board_archive = []
         
     def initialize_board(self):
             self.board_matrix = [
@@ -59,7 +62,12 @@ class ChessGame:
                             self.check_square = self.get_king_square(self.current_player, self.board_matrix)
                         else:
                             self.check_square = None
+                        self.is_stalemate(self.board_matrix, self.en_passant_square)
+                        self.archive_board(self.board_matrix)
+                        self.check_50_move_rule()
+                        self.check_threefold_repetition()
                         self.move_counter += 1
+                        print(self.board_archive)
                     elif self.is_valid_square(clicked_square, self.board_matrix):
                         piece = self.get_piece(clicked_square, self.board_matrix)
                         if piece.value[0] == self.current_player.value:
@@ -85,6 +93,9 @@ class ChessGame:
         from_row, from_col = from_square
         to_row, to_col = to_square
         piece = self.get_piece(from_square, new_board_matrix)
+        
+        if actual_move and ((piece in (ChessPiece.PAWN_BLACK, ChessPiece.PAWN_WHITE)) or self.get_piece(to_square, new_board_matrix) != ChessPiece.EMPTY):
+            self.last_capture_or_pawn_move = self.move_counter
 
         if piece in [ChessPiece.KING_BLACK, ChessPiece.KING_WHITE, ChessPiece.ROOK_WHITE, ChessPiece.ROOK_BLACK]:
             if self.can_castle_kingside(new_board_matrix) and ((from_col == 4 and to_col == 7) or (from_col == 7 and to_col == 4)):
@@ -417,15 +428,14 @@ class ChessGame:
             for c in range(8):
                 piece = self.get_piece((r, c), board_matrix)
                 if piece != ChessPiece.EMPTY and piece.value[0] == self.current_player.value:
-                    for move in self.calculate_possible_moves((r, c), board_matrix, en_passant_square):
-                        if self.get_piece((r, c), temp_board) in (ChessPiece.PAWN_BLACK, ChessPiece.PAWN_WHITE) and r in (0, 7):
-                            for promotion_piece in (ChessPiece.ROOK_BLACK, ChessPiece.KNIGHT_BLACK, ChessPiece.BISHOP_BLACK,  ChessPiece.QUEEN_BLACK, ChessPiece.ROOK_WHITE, ChessPiece.KNIGHT_WHITE, ChessPiece.BISHOP_WHITE, ChessPiece.QUEEN_WHITE):
-                                if promotion_piece.value[0] != self.current_player:
-                                    continue
-                                (temp_board, temp_en_passant_square) = self.move_piece((r, c), move, temp_board, temp_en_passant_square, promotion_piece)
-                                if self.is_in_check(temp_board) == False:
-                                    return False
-                                temp_board = copy.deepcopy(board_matrix)
+                    for move in self.calculate_possible_moves((r, c), board_matrix, temp_en_passant_square):
+                        if piece in (ChessPiece.PAWN_BLACK, ChessPiece.PAWN_WHITE) and r in (1, 6):
+                            promotion_piece = ChessPiece.QUEEN_BLACK if self.current_player == Color.BLACK else ChessPiece.QUEEN_WHITE
+                            temp_board = copy.deepcopy(board_matrix)
+                            temp_en_passant_square = en_passant_square
+                            (temp_board, temp_en_passant_square) = self.move_piece((r, c), move, temp_board, temp_en_passant_square, promotion_piece)
+                            if self.is_in_check(temp_board) == False:
+                                return False
                             continue
                         temp_en_passant_square = en_passant_square
                         temp_board = copy.deepcopy(board_matrix)
@@ -444,3 +454,28 @@ class ChessGame:
         (temp_board, temp_en_passant_square) = self.move_piece(from_square, to_square, temp_board, temp_en_passant_square, promotion_piece)
         
         return self.is_in_check(temp_board)
+    
+    def is_stalemate(self, board_matrix, en_passant_square):
+        for r in range(8):
+            for c in range(8):
+                piece = self.get_piece((r, c), board_matrix)
+                if piece != ChessPiece.EMPTY and piece.value[0] == self.current_player.value:
+                    if len(self.calculate_possible_moves((r, c), board_matrix, en_passant_square)) > 0:
+                        return False
+        self.invoke_draw()
+        return True
+    
+    def archive_board(self, board_matrix):
+        self.board_archive.append(hash(str(board_matrix)))
+        
+    def check_threefold_repetition(self):
+        if Counter(self.board_archive).most_common(1)[0][1] >= 3:
+            self.invoke_draw()
+        
+    def check_50_move_rule(self):
+        if self.last_capture_or_pawn_move - self.move_counter >= 100:
+            self.invoke_draw()
+    
+    def invoke_draw(self):
+        self.winner_square = (self.get_king_square(Color.BLACK, self.board_matrix), self.get_king_square(Color.WHITE, self.board_matrix))
+        

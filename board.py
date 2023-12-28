@@ -39,7 +39,7 @@ class Board:
                 color = self.colors[(row + col) % 2]
                 if (row, col) == check_square:
                     color = ORANGE
-                elif (row, col) == winner_square:
+                elif winner_square != None and ((row, col) == winner_square or (row, col) in winner_square):
                     color = GREEN
                 pygame.draw.rect(self.screen, color, (col * self.square_size, row * self.square_size, self.square_size, self.square_size))
 
