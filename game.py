@@ -49,12 +49,12 @@ class ChessGame:
                     row = y // self.board.square_size
                     clicked_square = (row, col)
                     if clicked_square in self.possible_moves:
-                        self.board_matrix = self.move_piece(selected_square, clicked_square, self.board_matrix)
+                        (self.board_matrix, self.en_passant_square) = self.move_piece(selected_square, clicked_square, self.board_matrix, self.en_passant_square, None, True)
                         selected_square = None
                         self.possible_moves = []
                         self.switch_current_player()
                         if self.is_in_check(self.board_matrix):
-                            if self.is_checkmate(self.board_matrix):
+                            if self.is_checkmate(self.board_matrix, self.en_passant_square):
                                 pass
                             self.check_square = self.get_king_square(self.current_player, self.board_matrix)
                         else:
@@ -64,7 +64,7 @@ class ChessGame:
                         piece = self.get_piece(clicked_square, self.board_matrix)
                         if piece.value[0] == self.current_player.value:
                             selected_square = clicked_square
-                            self.possible_moves = self.calculate_possible_moves(selected_square, self.board_matrix)
+                            self.possible_moves = self.calculate_possible_moves(selected_square, self.board_matrix, self.en_passant_square)
                     
                             
             self.board.update_board(self.board_matrix, selected_square, self.possible_moves, self.check_square, self.winner_square)
@@ -80,57 +80,55 @@ class ChessGame:
         row, col = square
         return board_matrix[row][col]
 
-    def move_piece(self, from_square, to_square, board_matrix):
+    def move_piece(self, from_square, to_square, board_matrix, local_en_passant_square, promotion_piece = None, actual_move = False):
         new_board_matrix = copy.deepcopy(board_matrix)
         from_row, from_col = from_square
         to_row, to_col = to_square
         piece = self.get_piece(from_square, new_board_matrix)
-        en_passant_possible = False
 
-        if piece == ChessPiece.KING_BLACK or ChessPiece.KING_WHITE or ChessPiece.ROOK_WHITE or ChessPiece.ROOK_BLACK:
-            if self.castling_rights[self.current_player]['kingside'] and (
-                    (from_col == 4 and to_col == 7) or (from_col == 7 and to_col == 4)):
-                return self.perform_castle_kingside(new_board_matrix)
-            if self.castling_rights[self.current_player]['queenside'] and (
-                    (from_col == 4 and to_col == 0) or (from_col == 0 and to_col == 4)):
-                return self.perform_castle_queenside(new_board_matrix)
+        if piece in [ChessPiece.KING_BLACK, ChessPiece.KING_WHITE, ChessPiece.ROOK_WHITE, ChessPiece.ROOK_BLACK]:
+            if self.can_castle_kingside(new_board_matrix) and ((from_col == 4 and to_col == 7) or (from_col == 7 and to_col == 4)):
+                new_board_matrix = self.perform_castle_kingside(new_board_matrix, actual_move)
+                return (new_board_matrix, local_en_passant_square) 
+            if self.can_castle_queenside(new_board_matrix) and ((from_col == 4 and to_col == 0) or (from_col == 0 and to_col == 4)):
+                new_board_matrix = self.perform_castle_queenside(new_board_matrix, actual_move)
+                return (new_board_matrix, local_en_passant_square)
 
         new_board_matrix[to_row][to_col] = new_board_matrix[from_row][from_col]
         new_board_matrix[from_row][from_col] = ChessPiece.EMPTY
 
         if piece in (ChessPiece.PAWN_BLACK, ChessPiece.PAWN_WHITE):
-            if abs(from_row - to_row) == 2:
-                self.en_passant_square = (from_row + (to_row - from_row) // 2, from_col)
-                en_passant_possible = True
-            if to_square == self.en_passant_square:
+            if to_square == local_en_passant_square:
                 new_board_matrix[from_row][to_col] = ChessPiece.EMPTY
+            if abs(from_row - to_row) == 2:
+                local_en_passant_square = (from_row + (to_row - from_row) // 2, from_col)
+            else:
+                local_en_passant_square = None
             if to_row in (0, 7):
-                return self.promotion(to_square, new_board_matrix)
+                return (self.promotion(to_square, new_board_matrix, promotion_piece), local_en_passant_square)
 
-        if piece in (ChessPiece.KING_BLACK, ChessPiece.KING_WHITE):
+        if actual_move and (piece in (ChessPiece.KING_BLACK, ChessPiece.KING_WHITE)):
             self.castling_rights[self.current_player]['kingside'] = False
             self.castling_rights[self.current_player]['queenside'] = False
-        if piece in (ChessPiece.ROOK_WHITE, ChessPiece.ROOK_BLACK):
+        if actual_move and (piece in (ChessPiece.ROOK_WHITE, ChessPiece.ROOK_BLACK)):
             if from_col == 0:
                 self.castling_rights[self.current_player]['queenside'] = False
             elif from_col == 7:
                 self.castling_rights[self.current_player]['kingside'] = False
-        if not en_passant_possible:
-            self.en_passant_square = None
             
-        return new_board_matrix
+        return (new_board_matrix, local_en_passant_square)
 
     def switch_current_player(self):
         self.current_player = Color.WHITE if self.current_player == Color.BLACK else Color.BLACK
 
-    def calculate_possible_moves(self, active_square, board_matrix):
+    def calculate_possible_moves(self, active_square, board_matrix, temp_en_passant_square):
         row, col = active_square
         piece = self.get_piece(active_square, board_matrix)
         possible_moves = []
 
         if piece in (ChessPiece.PAWN_BLACK, ChessPiece.PAWN_WHITE):
             direction = -1 if piece.value[0] == Color.WHITE.value else 1
-            possible_moves += self.calculate_pawn_moves(row, col, direction, board_matrix)
+            possible_moves += self.calculate_pawn_moves(row, col, direction, board_matrix, temp_en_passant_square)
         elif piece in (ChessPiece.ROOK_WHITE, ChessPiece.ROOK_BLACK):
             possible_moves += self.calculate_rook_moves(row, col, board_matrix)
         elif piece in (ChessPiece.KNIGHT_WHITE, ChessPiece.KNIGHT_BLACK):
@@ -143,9 +141,9 @@ class ChessGame:
         elif piece in (ChessPiece.KING_WHITE, ChessPiece.KING_BLACK):
             possible_moves += self.calculate_king_moves(row, col, board_matrix)
 
-        return possible_moves
+        return list(filter(lambda move: not self.move_does_cause_check(active_square, move, board_matrix, temp_en_passant_square), possible_moves))
 
-    def calculate_pawn_moves(self, row, col, direction, board_matrix):
+    def calculate_pawn_moves(self, row, col, direction, board_matrix, temp_en_passant_square):
         possible_moves = []
 
         if 0 <= row + direction < 8 and self.is_square_empty((row + direction, col), board_matrix):
@@ -160,8 +158,7 @@ class ChessGame:
             if 0 <= row + direction < 8 and 0 <= col + d_col < 8:
                 target_square = (row + direction, col + d_col)
                 target_piece = self.get_piece(target_square, board_matrix)
-                if (target_piece != ChessPiece.EMPTY and target_piece.value[0] != self.current_player.value) or (
-                        target_square == self.en_passant_square):
+                if (target_piece != ChessPiece.EMPTY and target_piece.value[0] != self.current_player.value) or (target_square == temp_en_passant_square):
                     possible_moves.append(target_square)
 
         return possible_moves
@@ -184,11 +181,8 @@ class ChessGame:
                 r += dr
                 c += dc
 
-        if col == 7 and self.can_castle_kingside(board_matrix):
-            possible_moves.append((7, 4))
-
-        if col == 0 and self.can_castle_queenside(board_matrix):
-            possible_moves.append((7, 4))
+        if (col == 7 and self.can_castle_kingside(board_matrix)) or (col == 0 and self.can_castle_queenside(board_matrix)):
+            possible_moves.append((row, 4))
 
         return possible_moves
 
@@ -252,6 +246,10 @@ class ChessGame:
 
     def is_square_empty(self, square, board_matrix):
         return self.get_piece(square, board_matrix) == ChessPiece.EMPTY
+    
+    def is_valid_move(self, from_square, to_square, board_matrix, en_passant_square):
+        possible_moves = self.calculate_possible_moves(from_square, board_matrix, en_passant_square)
+        return to_square in possible_moves
 
     def is_protected(self, square, board_matrix):
         opponent_impact = []
@@ -348,10 +346,11 @@ class ChessGame:
         if not self.castling_rights[self.current_player]['kingside']:
             return False
 
-        row_factor = 7 if self.current_player == Color.WHITE else 0
-        if not self.is_square_empty((row_factor, 5), board_matrix) or not self.is_square_empty((row_factor, 6), board_matrix):
+        castle_row_factor = 0 if self.current_player == Color.BLACK else 7
+        
+        if not self.is_square_empty((castle_row_factor, 5), board_matrix) or not self.is_square_empty((castle_row_factor, 6), board_matrix):
             return False
-        if self.is_protected((row_factor, 4), board_matrix) or self.is_protected((row_factor, 5), board_matrix) or self.is_protected((row_factor, 6), board_matrix):
+        if self.is_protected((castle_row_factor, 4), board_matrix) or self.is_protected((castle_row_factor, 5), board_matrix) or self.is_protected((castle_row_factor, 6), board_matrix):
             return False
 
         return True
@@ -360,33 +359,43 @@ class ChessGame:
         if not self.castling_rights[self.current_player]['queenside']:
             return False
 
-        row_factor = 7 if self.current_player == Color.WHITE else 0
-        if not self.is_square_empty((row_factor, 3), board_matrix) or not self.is_square_empty((row_factor, 2), board_matrix) or not self.is_square_empty((row_factor, 1), board_matrix):
+        castle_row_factor = 0 if self.current_player == Color.BLACK else 7
+
+        if not self.is_square_empty((castle_row_factor, 3), board_matrix) or not self.is_square_empty((castle_row_factor, 2), board_matrix) or not self.is_square_empty((castle_row_factor, 1), board_matrix):
             return False
-        if self.is_protected((row_factor, 4), board_matrix) or self.is_protected((row_factor, 3), board_matrix) or self.is_protected((row_factor, 2), board_matrix):
+        if self.is_protected((castle_row_factor, 4), board_matrix) or self.is_protected((castle_row_factor, 3), board_matrix) or self.is_protected((castle_row_factor, 2), board_matrix):
             return False
 
         return True
 
-    def perform_castle_kingside(self, board_matrix):
+    def perform_castle_kingside(self, board_matrix, actual_move):
+        temp_board = copy.deepcopy(board_matrix)
         row_factor = 7 if self.current_player == Color.WHITE else 0
-        board_matrix[row_factor][4] = ChessPiece.EMPTY
-        board_matrix[row_factor][7] = ChessPiece.EMPTY
-        board_matrix[row_factor][6] = ChessPiece.KING_WHITE if self.current_player == Color.WHITE else ChessPiece.KING_BLACK
-        board_matrix[row_factor][5] = ChessPiece.ROOK_WHITE if self.current_player == Color.WHITE else ChessPiece.ROOK_BLACK
-        return board_matrix
+        temp_board[row_factor][4] = ChessPiece.EMPTY
+        temp_board[row_factor][7] = ChessPiece.EMPTY
+        temp_board[row_factor][6] = ChessPiece.KING_WHITE if self.current_player == Color.WHITE else ChessPiece.KING_BLACK
+        temp_board[row_factor][5] = ChessPiece.ROOK_WHITE if self.current_player == Color.WHITE else ChessPiece.ROOK_BLACK
+        if actual_move:
+            self.castling_rights[self.current_player]['kingside'] = False
+            self.castling_rights[self.current_player]['queenside'] = False
+        return temp_board
 
-    def perform_castle_queenside(self, board_matrix):
+    def perform_castle_queenside(self, board_matrix, actual_move):
+        temp_board = copy.deepcopy(board_matrix)
         row_factor = 7 if self.current_player == Color.WHITE else 0
-        board_matrix[row_factor][4] = ChessPiece.EMPTY
-        board_matrix[row_factor][0] = ChessPiece.EMPTY
-        board_matrix[row_factor][2] = ChessPiece.KING_WHITE if self.current_player == Color.WHITE else ChessPiece.KING_BLACK
-        board_matrix[row_factor][3] = ChessPiece.ROOK_WHITE if self.current_player == Color.WHITE else ChessPiece.ROOK_BLACK
-        return board_matrix
+        temp_board[row_factor][4] = ChessPiece.EMPTY
+        temp_board[row_factor][0] = ChessPiece.EMPTY
+        temp_board[row_factor][2] = ChessPiece.KING_WHITE if self.current_player == Color.WHITE else ChessPiece.KING_BLACK
+        temp_board[row_factor][3] = ChessPiece.ROOK_WHITE if self.current_player == Color.WHITE else ChessPiece.ROOK_BLACK
+        if actual_move:
+            self.castling_rights[self.current_player]['kingside'] = False
+            self.castling_rights[self.current_player]['queenside'] = False
+        return temp_board
 
-    def promotion(self, promotion_square, board_matrix):
+    def promotion(self, promotion_square, board_matrix, promotion_piece):
         row, col = promotion_square
-        promotion_piece = self.board.select_promotion_piece(self.current_player)
+        if promotion_piece == None:
+            promotion_piece = self.board.select_promotion_piece(self.current_player)
         board_matrix[row][col] = promotion_piece
         return board_matrix
         
@@ -400,24 +409,38 @@ class ChessGame:
     def is_in_check(self, board_matrix):
         return self.is_protected(self.get_king_square(self.current_player, board_matrix), board_matrix)
     
-    def is_checkmate(self, board_matrix):
-        king_square = self.get_king_square(self.current_player, board_matrix)
+    def is_checkmate(self, board_matrix, en_passant_square):
         temp_board = copy.deepcopy(board_matrix)
-        
+        temp_en_passant_square = en_passant_square
         
         for r in range(8):
             for c in range(8):
                 piece = self.get_piece((r, c), board_matrix)
                 if piece != ChessPiece.EMPTY and piece.value[0] == self.current_player.value:
-                    for move in self.calculate_possible_moves((r, c), board_matrix):
-                        temp_board = self.move_piece((r, c), move, temp_board)
+                    for move in self.calculate_possible_moves((r, c), board_matrix, en_passant_square):
+                        if self.get_piece((r, c), temp_board) in (ChessPiece.PAWN_BLACK, ChessPiece.PAWN_WHITE) and r in (0, 7):
+                            for promotion_piece in (ChessPiece.ROOK_BLACK, ChessPiece.KNIGHT_BLACK, ChessPiece.BISHOP_BLACK,  ChessPiece.QUEEN_BLACK, ChessPiece.ROOK_WHITE, ChessPiece.KNIGHT_WHITE, ChessPiece.BISHOP_WHITE, ChessPiece.QUEEN_WHITE):
+                                if promotion_piece.value[0] != self.current_player:
+                                    continue
+                                (temp_board, temp_en_passant_square) = self.move_piece((r, c), move, temp_board, temp_en_passant_square, promotion_piece)
+                                if self.is_in_check(temp_board) == False:
+                                    return False
+                                temp_board = copy.deepcopy(board_matrix)
+                            continue
+                        temp_en_passant_square = en_passant_square
+                        temp_board = copy.deepcopy(board_matrix)
+                        (temp_board, temp_en_passant_square) = self.move_piece((r, c), move, temp_board, temp_en_passant_square)
                         if self.is_in_check(temp_board) == False:
                             return False
-                        temp_board = copy.deepcopy(board_matrix)
         
         self.winner_square = self.get_king_square(Color.BLACK if self.current_player == Color.WHITE else Color.WHITE, board_matrix)
         
         return True
     
-    def move_doesnt_cause_check(self):
-        #vell spass zuekonfts dani
+    def move_does_cause_check(self, from_square, to_square, board_matrix, temp_en_passant_square):
+        temp_board = copy.deepcopy(board_matrix)
+        promotion_piece = ChessPiece.QUEEN_BLACK if self.current_player == Color.BLACK else ChessPiece.QUEEN_WHITE
+        
+        (temp_board, temp_en_passant_square) = self.move_piece(from_square, to_square, temp_board, temp_en_passant_square, promotion_piece)
+        
+        return self.is_in_check(temp_board)
