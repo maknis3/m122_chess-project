@@ -67,7 +67,6 @@ class ChessGame:
                         self.check_50_move_rule()
                         self.check_threefold_repetition()
                         self.move_counter += 1
-                        print(self.board_archive)
                     elif self.is_valid_square(clicked_square, self.board_matrix):
                         piece = self.get_piece(clicked_square, self.board_matrix)
                         if piece.value[0] == self.current_player.value:
