@@ -1,5 +1,5 @@
 import unittest
-from chess_game import ChessGame
+from game import ChessGame
 from pieces import ChessPiece, Color
 from board import Board
 
