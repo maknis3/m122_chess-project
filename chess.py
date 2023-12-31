@@ -32,7 +32,7 @@ class Chess:
         if actual_move and ((piece in (ChessPiece.PAWN_BLACK, ChessPiece.PAWN_WHITE)) or self.get_piece(to_square, new_board_matrix) != ChessPiece.EMPTY):
             self.last_capture_or_pawn_move = move_counter
 
-        # en passant:
+        # en passant & promotion:
         if piece in (ChessPiece.PAWN_BLACK, ChessPiece.PAWN_WHITE):
             if to_square == local_en_passant_square:
                 new_board_matrix[from_row][to_col] = ChessPiece.EMPTY

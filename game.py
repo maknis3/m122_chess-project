@@ -103,8 +103,9 @@ class ChessGame:
         self.winner_square = self.chess.get_king_square(Color.BLACK if self.current_player == Color.WHITE else Color.WHITE, self.board_matrix)
         
     def chess_engine_turn(self):
-        from_square, to_square, promotion_piece = self.engine.calculate_move(self.board_matrix, self.en_passant_square)
+        from_square, to_square, promotion_piece = self.engine.calculate_move(self.board_matrix, self.en_passant_square, self.move_counter)
         if self.chess.is_valid_move(from_square, to_square, self.board_matrix, self.en_passant_square, self.current_player):
             (self.board_matrix, self.en_passant_square) = self.chess.move_piece(from_square, to_square, self.board_matrix,self.en_passant_square, self.current_player, promotion_piece, True, self.move_counter)
         else:
-            raise ValueError(f"Engine tried to make invalid move: {from_square}, {to_square}, {promotion_piece}")
+            print(f"Engine tried to make invalid move: {from_square}, {to_square}, {promotion_piece}")
+            self.winner_square = self.chess.get_king_square(Color.WHITE, self.board_matrix)
