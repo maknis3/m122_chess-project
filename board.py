@@ -1,6 +1,6 @@
 import pygame
 from pygame.locals import *
-from pieces import ChessPiece, Color
+import math
 
 WIDTH, HEIGHT = 800, 800
 WHITE = (255, 255, 255)
@@ -12,93 +12,80 @@ GREEN = (0, 255, 0)
 
 class Board:
     def __init__(self):
-        self.rows = 8
-        self.cols = 8
         self.colors = [WHITE, GRAY]
-        self.square_size = WIDTH // self.cols
+        self.square_size = WIDTH // 8
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Chessboard")
         self.pieces_images = {
-            ChessPiece.PAWN_WHITE: pygame.image.load("images/white-pawn.png"),
-            ChessPiece.KING_WHITE: pygame.image.load("images/white-king.png"),
-            ChessPiece.QUEEN_WHITE: pygame.image.load("images/white-queen.png"),
-            ChessPiece.ROOK_WHITE: pygame.image.load("images/white-rook.png"),
-            ChessPiece.BISHOP_WHITE: pygame.image.load("images/white-bishop.png"),
-            ChessPiece.KNIGHT_WHITE: pygame.image.load("images/white-knight.png"),
-            ChessPiece.PAWN_BLACK: pygame.image.load("images/black-pawn.png"),
-            ChessPiece.KING_BLACK: pygame.image.load("images/black-king.png"),
-            ChessPiece.QUEEN_BLACK: pygame.image.load("images/black-queen.png"),
-            ChessPiece.ROOK_BLACK: pygame.image.load("images/black-rook.png"),
-            ChessPiece.BISHOP_BLACK: pygame.image.load("images/black-bishop.png"),
-            ChessPiece.KNIGHT_BLACK: pygame.image.load("images/black-knight.png")
+            "PAWN_WHITE": pygame.image.load("images/white-pawn.png"),
+            "KING_WHITE": pygame.image.load("images/white-king.png"),
+            "QUEEN_WHITE": pygame.image.load("images/white-queen.png"),
+            "ROOK_WHITE": pygame.image.load("images/white-rook.png"),
+            "BISHOP_WHITE": pygame.image.load("images/white-bishop.png"),
+            "KNIGHT_WHITE": pygame.image.load("images/white-knight.png"),
+            "PAWN_BLACK": pygame.image.load("images/black-pawn.png"),
+            "KING_BLACK": pygame.image.load("images/black-king.png"),
+            "QUEEN_BLACK": pygame.image.load("images/black-queen.png"),
+            "ROOK_BLACK": pygame.image.load("images/black-rook.png"),
+            "BISHOP_BLACK": pygame.image.load("images/black-bishop.png"),
+            "KNIGHT_BLACK": pygame.image.load("images/black-knight.png")
         }
 
-    def update_board(self, chess_pieces, clicked_square, possible_moves, check_square, winner_square):
-        for row in range(self.rows):
-            for col in range(self.cols):
+    def update_board(self, chess_pieces, selected_square, possible_moves):
+        self.draw_board()
+        self.draw_pieces(chess_pieces)
+        if selected_square:
+            self.mark_selected_square(selected_square)
+        if possible_moves != []:
+            self.mark_possible_moves(possible_moves)
+
+    def draw_board(self):
+        for row in range(8):
+            for col in range(8):
                 color = self.colors[(row + col) % 2]
-                if (row, col) == check_square:
-                    color = ORANGE
-                elif winner_square != None and ((row, col) == winner_square or (row, col) in winner_square):
-                    color = GREEN
                 pygame.draw.rect(self.screen, color, (col * self.square_size, row * self.square_size, self.square_size, self.square_size))
 
-                piece = chess_pieces[row][col]
+    def draw_pieces(self, board_matrix):
+        for piece, bitboard in board_matrix.items():
+            for position in range(64):
+                row = position // 8
+                col = position % 8
+                if bitboard & (1 << position):
+                    x = col * self.square_size
+                    y = row * self.square_size
+                    self.screen.blit(self.pieces_images[piece], (x, y))
+                    
+    def mark_selected_square(self, selected_square):
+        row, col = selected_square
+        x = col * self.square_size
+        y = row * self.square_size
+        cross_color = RED
+        
+        thickness = 5
+        
+        center_x, center_y = x + self.square_size // 2, y + self.square_size // 2
 
-                if piece:
-                    piece_image = self.pieces_images.get(piece)
-                    if piece_image:
-                        self.screen.blit(piece_image, (col * self.square_size, row * self.square_size))
+        offset = self.square_size // 6
 
-        if clicked_square is not None:
-            row, col = clicked_square
-            pygame.draw.rect(self.screen, RED, (col * self.square_size, row * self.square_size, self.square_size, self.square_size), 3)  # Highlight the clicked square in red
+        start_line1 = (center_x - offset, center_y - offset)
+        end_line1 = (center_x + offset, center_y + offset)
+        start_line2 = (center_x - offset, center_y + offset)
+        end_line2 = (center_x + offset, center_y - offset)
+        
+        pygame.draw.line(self.screen, cross_color, start_line1, end_line1, thickness)
+        pygame.draw.line(self.screen, cross_color, start_line2, end_line2, thickness)
+        
+    def mark_possible_moves(self, possible_moves):
+        for move in possible_moves:
+            x = move[0] * self.square_size
+            y = move[1] * self.square_size
 
-        for square in possible_moves:
-            row, col = square
-            pygame.draw.rect(self.screen, BLUE, (col * self.square_size, row * self.square_size, self.square_size, self.square_size), 3)
-            
+            center_x, center_y = x + self.square_size // 2, y + self.square_size // 2
+
+            radius = self.square_size // 2 - 25
+            pygame.draw.circle(self.screen, BLUE, (center_x, center_y), radius, 5)
+
     def reset_screen(self):
+        self.screen.fill(WHITE)
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Chessboard")
-            
-    def select_promotion_piece(self, current_player):
-
-        promotion_screen = pygame.display.set_mode((400, 100))
-        pygame.display.set_caption("Promotion")
-
-        while True:
-            for event in pygame.event.get():
-                if event.type == QUIT:
-                    pygame.quit()
-                    return None
-                if event.type == MOUSEBUTTONDOWN:
-                    mouse_x, mouse_y = pygame.mouse.get_pos()
-                    if 0 <= mouse_x <= 100:
-                        self.reset_screen()
-                        return ChessPiece.ROOK_BLACK if current_player == Color.BLACK else ChessPiece.ROOK_WHITE 
-                    elif 100 < mouse_x <= 200:
-                        self.reset_screen()
-                        return ChessPiece.KNIGHT_BLACK if current_player == Color.BLACK else ChessPiece.KNIGHT_WHITE 
-                    elif 200 < mouse_x <= 300:
-                        self.reset_screen()
-                        return ChessPiece.BISHOP_BLACK if current_player == Color.BLACK else ChessPiece.BISHOP_WHITE 
-                    elif 300 < mouse_x <= 400:
-                        self.reset_screen()
-                        return ChessPiece.QUEEN_BLACK if current_player == Color.BLACK else ChessPiece.QUEEN_WHITE 
-
-            promotion_screen.fill(WHITE)
-            
-            if current_player == Color.BLACK:
-                pieces = (ChessPiece.ROOK_BLACK, ChessPiece.KNIGHT_BLACK, ChessPiece.BISHOP_BLACK,  ChessPiece.QUEEN_BLACK)
-            else:
-                pieces = (ChessPiece.ROOK_WHITE, ChessPiece.KNIGHT_WHITE, ChessPiece.BISHOP_WHITE, ChessPiece.QUEEN_WHITE)
-            
-            for col in range(4):
-                color = self.colors[col % 2]
-                pygame.draw.rect(self.screen, color, (col * self.square_size, 0, self.square_size, self.square_size))
-                piece_image = self.pieces_images.get(pieces[col])
-                if piece_image:
-                    self.screen.blit(piece_image, (col * self.square_size, 0))
-
-            pygame.display.flip()
