@@ -29,14 +29,6 @@ class Chess:
         col = int(math.log(position, 2) % 8)
         return row, col
     
-#    def position_to_square(self, position):
-#        for possibility in range(64):
-#            if position & (1 << possibility):
-#                row = possibility % 8
-#                col = possibility // 8
-#                return (row, col)
-#        return None
-    
     def identify_piece(self, position, board_matrix):
         for piece in board_matrix:
             if (board_matrix[piece] & position) == position:
@@ -55,6 +47,8 @@ class Chess:
                 return self.calculate_pawn_moves(piece_color, position, board_matrix)
             if piece_type == "ROOK":
                 return self.calculate_rook_moves(piece_color, position, board_matrix)
+            if piece_type == "BISHOP":
+                return self.calculate_bishop_moves(piece_color, position, board_matrix)
             # Add conditions for other pieces here...
         return []
 
@@ -62,7 +56,7 @@ class Chess:
     def calculate_pawn_moves(self, piece_color, position, board_matrix):
         moves = []
         direction = False if piece_color=="WHITE" else True
-        for delta_col in [9, 7]:  # Check diagonals for captures
+        for delta_col in [9, 7]:
             capture_square = (position << delta_col) if direction else (position >> delta_col)
             if not self.is_opponent_piece(capture_square, piece_color, board_matrix) and (math.log(position,2)/8 == math.log(capture_square,2)/8):
                 moves.append(capture_square)
@@ -90,14 +84,36 @@ class Chess:
                     if self.is_empty_square(board_matrix, new_position):
                         moves.append(new_position)
                     else:
-                        # Check if it's an opponent's piece
                         if self.is_opponent_piece(new_position, piece_color, board_matrix):
                             moves.append(new_position)
-                        break  # Stop moving in this direction if you hit a piece
+                        break
                 else:
-                    break  # Stop if the move is off the board
+                    break
 
         return moves
+    
+    def calculate_bishop_moves(self, piece_color, position, board_matrix):
+        moves = []
+        row, col = self.position_to_square(position)
+
+        directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+
+        for dr, dc in directions:
+            r, c = row + dr, col + dc
+            while 0 <= r < 8 and 0 <= c < 8:
+                target_position = self.square_to_position((r, c))
+                if self.is_empty_square(board_matrix, target_position):
+                    moves.append(target_position)
+                elif self.is_opponent_piece(target_position, piece_color, board_matrix):
+                    moves.append(target_position)
+                    break
+                else:
+                    break
+                r += dr
+                c += dc
+
+        return moves
+
 
     def is_opponent_piece(self, position, piece_color, board_matrix):
         _, other_piece_color = self.identify_piece(position, board_matrix)

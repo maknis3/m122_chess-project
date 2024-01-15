@@ -47,7 +47,8 @@ class ChessGame:
                     if selected_square in possible_moves:
                         self.chess.move_piece_square(origin_square, selected_square, self.board_matrix)
                         possible_moves = []
-                    if not self.chess.is_empty_square(self.board_matrix, self.chess.get_position(selected_square)):
+                        selected_square = None
+                    elif not self.chess.is_empty_square(self.board_matrix, self.chess.get_position(selected_square)):
                         possible_moves = self.positions_to_squares(self.chess.calculate_possible_moves(self.board_matrix, selected_square))
                         origin_square = selected_square
                     else:
