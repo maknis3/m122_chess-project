@@ -41,7 +41,7 @@ class Chess:
     def calculate_possible_moves(self, board_matrix, position):
         piece_type, piece_color = self.identify_piece(position, board_matrix)
         moves = []
-        print(piece_type, piece_color, position)
+        #print(piece_type, piece_color, position)
         if piece_type:
             if piece_type == "PAWN":
                 moves += self.calculate_pawn_moves(piece_color, position, board_matrix)
@@ -69,10 +69,10 @@ class Chess:
                 if (int(math.log(position,2))%8 - int(math.log(capture_position,2))%8) in (-1, 1):
                     moves.append(capture_position)
             return moves
-            
+        
         for delta_col in [9, 7]:
             capture_position = (position << delta_col) if direction else (position >> delta_col)
-            if self.is_opponent_piece(capture_position, piece_color, board_matrix) and (int(math.log(position,2))%8 - int(math.log(capture_position,2))%8) in (-1, 1):
+            if (self.is_opponent_piece(capture_position, piece_color, board_matrix) or (board_matrix["en_passant_position"] == capture_position)) and (int(math.log(position,2))%8 - int(math.log(capture_position,2))%8) in (-1, 1):
                 moves.append(capture_position)
                 
         forward_square = (position << 8) if direction else (position >> 8)
@@ -198,10 +198,10 @@ class Chess:
         moved_piece_type, moved_piece_color = self.identify_piece(start_position, board_matrix)
         target_piece_type, target_piece_color = self.identify_piece(end_position, board_matrix)
         
-        if not target_piece_color in (None, moved_piece_color):
-            board_matrix[target_piece_type + "_" + target_piece_color] &= ~(end_position) # Clear the captured piece
+        if not target_piece_color in (None, moved_piece_color): # Clear the captured piece
+            board_matrix[target_piece_type + "_" + target_piece_color] &= ~(end_position) 
 
-        if moved_piece_type in ("KING", "ROOK"): #update casteling rights if king or rook has moved
+        if moved_piece_type in ("KING", "ROOK"): # Casteling logic
             if (start_position in (72057594037927936, 1152921504606846976, 1, 16)) and (end_position in (72057594037927936, 1152921504606846976, 1, 16)) and self.can_castle_queenside(moved_piece_color, board_matrix):
                 self.perform_castle_queenside(moved_piece_color, board_matrix)
                 return
@@ -210,6 +210,21 @@ class Chess:
                 return
             self.update_casteling_rights(start_position, moved_piece_color, board_matrix)
         
+        if moved_piece_type == "PAWN": # En passant logic
+            if end_position == board_matrix["en_passant_position"]:
+                if moved_piece_color == "WHITE":
+                    board_matrix["PAWN_BLACK"] &= ~(end_position << 8)
+                else:
+                    board_matrix["PAWN_WHITE"] &= ~(end_position >> 8)
+            board_matrix["en_passant_position"] = None
+            if (start_position | 71776119061282560) == 71776119061282560 and (end_position | 280375481794560) == 280375481794560:
+                if moved_piece_color == "WHITE":
+                    board_matrix["en_passant_position"] = (start_position >> 8)
+                else:
+                    board_matrix["en_passant_position"] = (start_position << 8)
+        else:
+            board_matrix["en_passant_position"] = None
+                
         board_matrix[moved_piece_type + "_" + moved_piece_color] &= ~(start_position) # Clear the start position
         board_matrix[moved_piece_type + "_" + moved_piece_color] |= (end_position) # Set the end position
         
@@ -257,12 +272,13 @@ class Chess:
     
     def is_in_checkmate(self, white_turn, board_matrix):
         own_color = "WHITE" if white_turn else "BLACK"
-        if not self.is_in_check(white_turn, board_matrix):
+        temp_board_matrix = board_matrix.copy()
+        if not self.is_in_check(white_turn, temp_board_matrix):
             return False
         for position_factor in range(64):
             lookup_position = (1 << position_factor)
-            if self.is_own_piece(lookup_position, own_color, board_matrix):
-                if self.calculate_possible_moves(board_matrix, lookup_position) != []:
+            if self.is_own_piece(lookup_position, own_color, temp_board_matrix):
+                if self.calculate_possible_moves(temp_board_matrix, lookup_position) != []:
                     return False
         return True
     

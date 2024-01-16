@@ -107,10 +107,10 @@ class Board:
             radius = self.square_size // 2 - 25
             pygame.draw.circle(self.screen, BLUE, (center_x, center_y), radius, 5)
 
-    def reset_screen(self):
-        self.screen.fill(WHITE)
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        pygame.display.set_caption("Chessboard")
+    #def reset_screen(self):
+    #    self.screen.fill(WHITE)
+    #    self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    #    pygame.display.set_caption("Chessboard")
         
     def position_to_square(self, position):
         # Convert a position (bit index) to a square (row, col)

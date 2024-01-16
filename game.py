@@ -23,7 +23,7 @@ class ChessGame:
             "QUEEN_WHITE": 0b0000100000000000000000000000000000000000000000000000000000000000,
             "KING_WHITE": 0b0001000000000000000000000000000000000000000000000000000000000000,
             "casteling_rights": 0b1111, #white-queenside, white-kingside, black-queenside, black-kingside
-            "en_passant_position": None
+            "en_passant_position": 0
         }
         self.white_turn = True
         self.check_position = None
@@ -63,6 +63,7 @@ class ChessGame:
         row = y // self.board.square_size
         
         selected_position = self.chess.square_to_position((row, col))
+        print("selected position: " + str(selected_position))
         
         if selected_position in possible_moves:
             self.chess.move_piece(origin_position, selected_position, self.board_matrix)
