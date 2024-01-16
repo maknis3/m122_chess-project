@@ -42,7 +42,7 @@ class ChessGame:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.winner_positions == []:
                     x, y = event.pos
                     col = x // self.board.square_size
                     row = y // self.board.square_size
@@ -51,7 +51,8 @@ class ChessGame:
                         self.chess.move_piece(origin_square, selected_square, self.board_matrix)
                         possible_moves = []
                         selected_square = None
-                    elif not self.chess.is_empty_position(self.board_matrix, selected_square):
+                        self.end_trun()
+                    elif self.chess.is_own_piece(selected_square, "WHITE" if self.white_turn else "BLACK", self.board_matrix):
                         possible_moves = self.chess.calculate_possible_moves(self.board_matrix, selected_square)
                         origin_square = selected_square
                     else:
@@ -69,7 +70,12 @@ class ChessGame:
         self.white_turn = not self.white_turn
         
         if self.chess.is_in_check(self.white_turn, self.board_matrix):
-            if self.chess.is_in_checkmate():
-                pass
+            if self.chess.is_in_checkmate(self.white_turn, self.board_matrix):
+                opponent_color = "BLACK" if self.white_turn else "WHITE"
+                self.winner_positions = [self.board_matrix["KING_" + opponent_color]]
             else:
-                self.check_position = self.board_matrix["KING_" + "WHITE" if self.white_turn else "BLACK"]
+                own_color = "WHITE" if self.white_turn else "BLACK"
+                self.check_position = self.board_matrix["KING_" + own_color]
+        elif self.chess.is_stalemate(self.white_turn, self.board_matrix):
+            self.winner_positions = [self.board_matrix["KING_WHITE"], self.board_matrix["KING_BLACK"]]
+            

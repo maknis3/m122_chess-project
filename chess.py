@@ -55,9 +55,17 @@ class Chess:
         return list(filter(lambda move: not self.move_will_cause_check(piece_color, board_matrix, position, move), moves))
 
     
-    def calculate_pawn_moves(self, piece_color, position, board_matrix):
+    def calculate_pawn_moves(self, piece_color, position, board_matrix, only_impact = False):
         moves = []
         direction = False if piece_color=="WHITE" else True
+        
+        if only_impact:
+            for delta_col in [9, 7]:
+                capture_position = (position << delta_col) if direction else (position >> delta_col)
+                if (int(math.log(position,2))%8 - int(math.log(capture_position,2))%8) in (-1, 1):
+                    moves.append(capture_position)
+            return moves
+            
         for delta_col in [9, 7]:
             capture_position = (position << delta_col) if direction else (position >> delta_col)
             if self.is_opponent_piece(capture_position, piece_color, board_matrix) and (int(math.log(position,2))%8 - int(math.log(capture_position,2))%8) in (-1, 1):
@@ -91,7 +99,7 @@ class Chess:
                         break
                 else:
                     break
-
+                
         return moves
     
     def calculate_bishop_moves(self, piece_color, position, board_matrix):
@@ -181,7 +189,7 @@ class Chess:
                 lookup_piece_type, lookup_piece_color = self.identify_piece(lookup_position, board_matrix)
                 match lookup_piece_type:
                     case "PAWN":
-                        if position in self.calculate_pawn_moves(lookup_piece_color, lookup_position, board_matrix):
+                        if position in self.calculate_pawn_moves(lookup_piece_color, lookup_position, board_matrix, True):
                             return True
                     case "ROOK":
                         if position in self.calculate_rook_moves(lookup_piece_color, lookup_position, board_matrix):
@@ -202,18 +210,35 @@ class Chess:
         return False
     
     def move_will_cause_check(self, piece_color, board_matrix, start_position, end_position):
-        opponent_color = "WHITE" if piece_color == "BLACK" else "BLACK"
-        king_position = board_matrix["KING_" + piece_color]
+        white_turn = (piece_color == "WHITE")
         temp_board_matrix = board_matrix.copy()
         self.move_piece(start_position, end_position, temp_board_matrix)
         
-        return self.is_position_attacked_by(opponent_color, king_position, temp_board_matrix)
+        return self.is_in_check(white_turn, temp_board_matrix)
     
     def is_in_check(self, white_turn, board_matrix):
+        own_color = "WHITE" if white_turn else "BLACK"
         opponent_color = "BLACK" if white_turn else "WHITE"
-        king_position = board_matrix["KING_" + "WHITE" if white_turn else "BLACK"]
+        king_position = board_matrix["KING_" + own_color]
         
         return self.is_position_attacked_by(opponent_color, king_position, board_matrix)
     
-    def is_in_checkmate(self):
-        return False
+    def is_in_checkmate(self, white_turn, board_matrix):
+        own_color = "WHITE" if white_turn else "BLACK"
+        if not self.is_in_check(white_turn, board_matrix):
+            return False
+        for position_factor in range(64):
+            lookup_position = (1 << position_factor)
+            if self.is_own_piece(lookup_position, own_color, board_matrix):
+                if self.calculate_possible_moves(board_matrix, lookup_position) != []:
+                    return False
+        return True
+    
+    def is_stalemate(self, white_turn, board_matrix):
+        own_color = "WHITE" if white_turn else "BLACK"
+        for position_factor in range(64):
+            lookup_position = (1 << position_factor)
+            if self.is_own_piece(lookup_position, own_color, board_matrix):
+                if self.calculate_possible_moves(board_matrix, lookup_position) != []:
+                    return False
+        return True
