@@ -37,34 +37,47 @@ class ChessGame:
         pygame.init()
         running = True
         selected_position = None
+        origin_position = None
         possible_moves = []
 
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.winner_positions == []:
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     x, y = event.pos
-                    col = x // self.board.square_size
-                    row = y // self.board.square_size
-                    selected_position = self.chess.square_to_position((row, col))
-                    if selected_position in possible_moves:
-                        self.chess.move_piece(origin_square, selected_position, self.board_matrix)
-                        possible_moves = []
-                        selected_position = None
-                        self.end_trun()
-                    elif self.chess.is_own_piece(selected_position, "WHITE" if self.white_turn else "BLACK", self.board_matrix):
-                        possible_moves = self.chess.calculate_possible_moves(self.board_matrix, selected_position)
-                        origin_square = selected_position
-                    else:
-                        possible_moves = []
+                    
+                    if (x < 800) and self.winner_positions == []:
+                        selected_position, possible_moves, origin_position = self.chess_interaction(x, y, possible_moves, origin_position)
+
             self.board.update_board(self.board_matrix, selected_position, possible_moves, self.check_position, self.winner_positions)
             pygame.display.flip()
 
         pygame.quit()
         sys.exit()
         
-    def end_trun(self):
+        
+        
+    def chess_interaction(self, x, y, possible_moves, origin_position):
+        col = x // self.board.square_size
+        row = y // self.board.square_size
+        
+        selected_position = self.chess.square_to_position((row, col))
+        
+        if selected_position in possible_moves:
+            self.chess.move_piece(origin_position, selected_position, self.board_matrix)
+            possible_moves = []
+            selected_position = None
+            self.end_turn()
+        elif self.chess.is_own_piece(selected_position, "WHITE" if self.white_turn else "BLACK", self.board_matrix):
+            possible_moves = self.chess.calculate_possible_moves(self.board_matrix, selected_position)
+            origin_position = selected_position
+        else:
+            possible_moves = []
+        
+        return selected_position, possible_moves, origin_position
+        
+    def end_turn(self):
         self.check_position = None
         
         self.move_counter += 1

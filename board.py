@@ -2,7 +2,8 @@ import pygame
 from pygame.locals import *
 import math
 
-WIDTH, HEIGHT = 800, 800
+CHESS_WIDTH, CHESS_HEIGHT = 800, 800
+MENU_WIDTH = 350
 WHITE = (255, 255, 255)
 GRAY = (169, 169, 169)
 BLUE = (0, 0, 255)
@@ -13,8 +14,8 @@ GREEN = (0, 255, 0)
 class Board:
     def __init__(self):
         self.colors = [WHITE, GRAY]
-        self.square_size = WIDTH // 8
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.square_size = CHESS_HEIGHT // 8
+        self.screen = pygame.display.set_mode((CHESS_WIDTH + MENU_WIDTH, CHESS_HEIGHT))
         pygame.display.set_caption("Chessboard")
         self.pieces_images = {
             "PAWN_WHITE": pygame.image.load("images/white-pawn.png"),
@@ -30,6 +31,9 @@ class Board:
             "BISHOP_BLACK": pygame.image.load("images/black-bishop.png"),
             "KNIGHT_BLACK": pygame.image.load("images/black-knight.png")
         }
+        self.menu_images = {
+            "basic": pygame.image.load("images/menu_basic.png")
+        }
 
     def update_board(self, chess_pieces, selected_square, possible_moves, check_position, winner_positions):
         self.draw_board(check_position, winner_positions)
@@ -38,6 +42,7 @@ class Board:
             self.mark_selected_square(selected_square)
         if possible_moves != []:
             self.mark_possible_moves(possible_moves)
+        self.load_menu()
 
     def draw_board(self, check_position, winner_positions):
         check_square = None
@@ -112,3 +117,6 @@ class Board:
         row = int(math.log(position, 2) // 8)
         col = int(math.log(position, 2) % 8)
         return row, col
+
+    def load_menu(self):
+        self.screen.blit(self.menu_images["basic"], (CHESS_WIDTH, 0))

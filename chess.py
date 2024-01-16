@@ -204,12 +204,14 @@ class Chess:
         if moved_piece_type in ("KING", "ROOK"): #update casteling rights if king or rook has moved
             if (start_position in (72057594037927936, 1152921504606846976, 1, 16)) and (end_position in (72057594037927936, 1152921504606846976, 1, 16)) and self.can_castle_queenside(moved_piece_color, board_matrix):
                 self.perform_castle_queenside(moved_piece_color, board_matrix)
+                return
             elif (start_position in (1152921504606846976, 9223372036854775808, 16, 128)) and (end_position in (1152921504606846976, 9223372036854775808, 16, 128)) and self.can_castle_kingside(moved_piece_color, board_matrix):
                 self.perform_castle_kingside(moved_piece_color, board_matrix)
+                return
             self.update_casteling_rights(start_position, moved_piece_color, board_matrix)
-        else:
-            board_matrix[moved_piece_type + "_" + moved_piece_color] &= ~(start_position) # Clear the start position
-            board_matrix[moved_piece_type + "_" + moved_piece_color] |= (end_position) # Set the end position
+        
+        board_matrix[moved_piece_type + "_" + moved_piece_color] &= ~(start_position) # Clear the start position
+        board_matrix[moved_piece_type + "_" + moved_piece_color] |= (end_position) # Set the end position
         
         
     def is_position_attacked_by(self, color, position, board_matrix):
@@ -335,11 +337,13 @@ class Chess:
             board_matrix["KING_WHITE"] |= (288230376151711744)
             board_matrix["ROOK_WHITE"] &= ~(72057594037927936)
             board_matrix["ROOK_WHITE"] |= (576460752303423488)
+            board_matrix["casteling_rights"] &= ~(12)
         else:
             board_matrix["KING_BLACK"] &= ~(16)
             board_matrix["KING_BLACK"] |= (4)
             board_matrix["ROOK_BLACK"] &= ~(1)
             board_matrix["ROOK_BLACK"] |= (8)
+            board_matrix["casteling_rights"] &= ~(3)
     
     def perform_castle_kingside(self, piece_color, board_matrix):
         if piece_color == "WHITE":
@@ -347,8 +351,10 @@ class Chess:
             board_matrix["KING_WHITE"] |= (4611686018427387904)
             board_matrix["ROOK_WHITE"] &= ~(9223372036854775808)
             board_matrix["ROOK_WHITE"] |= (2305843009213693952)
+            board_matrix["casteling_rights"] &= ~(12)
         else:
             board_matrix["KING_BLACK"] &= ~(16)
             board_matrix["KING_BLACK"] |= (64)
             board_matrix["ROOK_BLACK"] &= ~(128)
             board_matrix["ROOK_BLACK"] |= (32)
+            board_matrix["casteling_rights"] &= ~(3)
