@@ -21,10 +21,11 @@ class ChessGame:
             "KNIGHT_WHITE": 0b0100001000000000000000000000000000000000000000000000000000000000,
             "BISHOP_WHITE": 0b0010010000000000000000000000000000000000000000000000000000000000,
             "QUEEN_WHITE": 0b0000100000000000000000000000000000000000000000000000000000000000,
-            "KING_WHITE": 0b0001000000000000000000000000000000000000000000000000000000000000
+            "KING_WHITE": 0b0001000000000000000000000000000000000000000000000000000000000000,
+            "casteling_rights": 0b1111, #white-queenside, white-kingside, black-queenside, black-kingside
+            "en_passant_position": None
         }
         self.white_turn = True
-        self.en_passant_position = []
         self.check_position = None
         self.winner_positions = []
         self.move_counter = 0
@@ -35,7 +36,7 @@ class ChessGame:
     def start_game(self):
         pygame.init()
         running = True
-        selected_square = None
+        selected_position = None
         possible_moves = []
 
         while running:
@@ -46,18 +47,18 @@ class ChessGame:
                     x, y = event.pos
                     col = x // self.board.square_size
                     row = y // self.board.square_size
-                    selected_square = self.chess.square_to_position((row, col))
-                    if selected_square in possible_moves:
-                        self.chess.move_piece(origin_square, selected_square, self.board_matrix)
+                    selected_position = self.chess.square_to_position((row, col))
+                    if selected_position in possible_moves:
+                        self.chess.move_piece(origin_square, selected_position, self.board_matrix)
                         possible_moves = []
-                        selected_square = None
+                        selected_position = None
                         self.end_trun()
-                    elif self.chess.is_own_piece(selected_square, "WHITE" if self.white_turn else "BLACK", self.board_matrix):
-                        possible_moves = self.chess.calculate_possible_moves(self.board_matrix, selected_square)
-                        origin_square = selected_square
+                    elif self.chess.is_own_piece(selected_position, "WHITE" if self.white_turn else "BLACK", self.board_matrix):
+                        possible_moves = self.chess.calculate_possible_moves(self.board_matrix, selected_position)
+                        origin_square = selected_position
                     else:
                         possible_moves = []
-            self.board.update_board(self.board_matrix, selected_square, possible_moves, self.check_position, self.winner_positions)
+            self.board.update_board(self.board_matrix, selected_position, possible_moves, self.check_position, self.winner_positions)
             pygame.display.flip()
 
         pygame.quit()

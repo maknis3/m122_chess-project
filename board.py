@@ -61,6 +61,8 @@ class Board:
 
     def draw_pieces(self, board_matrix):
         for piece, bitboard in board_matrix.items():
+            if piece in ("casteling_rights", "en_passant_position"):
+                continue
             for position in range(64):
                 row = position // 8
                 col = position % 8
