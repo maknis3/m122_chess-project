@@ -31,18 +31,32 @@ class Board:
             "KNIGHT_BLACK": pygame.image.load("images/black-knight.png")
         }
 
-    def update_board(self, chess_pieces, selected_square, possible_moves):
-        self.draw_board()
+    def update_board(self, chess_pieces, selected_square, possible_moves, check_position, winner_positions):
+        self.draw_board(check_position, winner_positions)
         self.draw_pieces(chess_pieces)
         if selected_square:
             self.mark_selected_square(selected_square)
         if possible_moves != []:
             self.mark_possible_moves(possible_moves)
 
-    def draw_board(self):
+    def draw_board(self, check_position, winner_positions):
+        check_square = None
+        winner_squares = []
+        
+        if check_position:
+            check_square = self.position_to_square(check_position)
+        if winner_positions != []:
+            for position in winner_positions:
+                winner_squares.append(self.position_to_square(position))
+                
         for row in range(8):
             for col in range(8):
                 color = self.colors[(row + col) % 2]
+                if (row, col) == check_square:
+                    color = ORANGE
+                elif (row, col) in winner_squares:
+                    color = GREEN
+                
                 pygame.draw.rect(self.screen, color, (col * self.square_size, row * self.square_size, self.square_size, self.square_size))
 
     def draw_pieces(self, board_matrix):
@@ -56,7 +70,7 @@ class Board:
                     self.screen.blit(self.pieces_images[piece], (x, y))
                     
     def mark_selected_square(self, selected_square):
-        row, col = selected_square
+        row, col = self.position_to_square(selected_square)
         x = col * self.square_size
         y = row * self.square_size
         cross_color = RED
@@ -77,8 +91,9 @@ class Board:
         
     def mark_possible_moves(self, possible_moves):
         for move in possible_moves:
-            x = move[0] * self.square_size
-            y = move[1] * self.square_size
+            square = self.position_to_square(move)
+            y = square[0] * self.square_size
+            x = square[1] * self.square_size
 
             center_x, center_y = x + self.square_size // 2, y + self.square_size // 2
 
@@ -89,3 +104,9 @@ class Board:
         self.screen.fill(WHITE)
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Chessboard")
+        
+    def position_to_square(self, position):
+        # Convert a position (bit index) to a square (row, col)
+        row = int(math.log(position, 2) // 8)
+        col = int(math.log(position, 2) % 8)
+        return row, col

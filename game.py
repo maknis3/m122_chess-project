@@ -1,5 +1,6 @@
 import pygame
 import sys
+import math
 from board import Board
 from chess import Chess
 
@@ -23,10 +24,12 @@ class ChessGame:
             "KING_WHITE": 0b0001000000000000000000000000000000000000000000000000000000000000
         }
         self.white_turn = True
-        self.en_passant_square = None
+        self.en_passant_position = []
+        self.check_position = None
+        self.winner_positions = []
         self.move_counter = 0
         self.board = Board()
-        self.board.update_board(self.board_matrix, None, [])
+        self.board.update_board(self.board_matrix, None, [], None, [])
         self.chess = Chess()
 
     def start_game(self):
@@ -43,28 +46,30 @@ class ChessGame:
                     x, y = event.pos
                     col = x // self.board.square_size
                     row = y // self.board.square_size
-                    selected_square = (row, col)
+                    selected_square = self.chess.square_to_position((row, col))
                     if selected_square in possible_moves:
-                        self.chess.move_piece_square(origin_square, selected_square, self.board_matrix)
+                        self.chess.move_piece(origin_square, selected_square, self.board_matrix)
                         possible_moves = []
                         selected_square = None
-                    elif not self.chess.is_empty_square(self.board_matrix, self.chess.get_position(selected_square)):
-                        possible_moves = self.positions_to_squares(self.chess.calculate_possible_moves(self.board_matrix, selected_square))
+                    elif not self.chess.is_empty_position(self.board_matrix, selected_square):
+                        possible_moves = self.chess.calculate_possible_moves(self.board_matrix, selected_square)
                         origin_square = selected_square
                     else:
                         possible_moves = []
-            self.board.update_board(self.board_matrix, selected_square, possible_moves)
+            self.board.update_board(self.board_matrix, selected_square, possible_moves, self.check_position, self.winner_positions)
             pygame.display.flip()
 
         pygame.quit()
         sys.exit()
-    
-    def positions_to_squares(self, positions):
-        squares = []
-        for possibility in range(64):
-            for position in positions:
-                if position & (1 << possibility):
-                    row = possibility % 8
-                    col = possibility // 8
-                    squares.append((row, col))
-        return squares
+        
+    def end_trun(self):
+        self.check_position = None
+        
+        self.move_counter += 1
+        self.white_turn = not self.white_turn
+        
+        if self.chess.is_in_check(self.white_turn, self.board_matrix):
+            if self.chess.is_in_checkmate():
+                pass
+            else:
+                self.check_position = self.board_matrix["KING_" + "WHITE" if self.white_turn else "BLACK"]
