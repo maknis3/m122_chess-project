@@ -1,4 +1,5 @@
 import pygame
+import sys
 from pygame.locals import *
 import math
 
@@ -6,6 +7,8 @@ CHESS_WIDTH, CHESS_HEIGHT = 800, 800
 MENU_WIDTH = 350
 WHITE = (255, 255, 255)
 GRAY = (169, 169, 169)
+DARK_GRAY = (120, 120, 120)
+BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
 ORANGE = (255, 165, 0)
@@ -106,11 +109,6 @@ class Board:
 
             radius = self.square_size // 2 - 25
             pygame.draw.circle(self.screen, BLUE, (center_x, center_y), radius, 5)
-
-    #def reset_screen(self):
-    #    self.screen.fill(WHITE)
-    #    self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    #    pygame.display.set_caption("Chessboard")
         
     def position_to_square(self, position):
         # Convert a position (bit index) to a square (row, col)
@@ -120,3 +118,51 @@ class Board:
 
     def load_menu(self):
         self.screen.blit(self.menu_images["basic"], (CHESS_WIDTH, 0))
+        
+    def get_promotion_piece(self, color):
+        promotion_pieces = ["QUEEN", "ROOK", "BISHOP", "KNIGHT"]
+        selected_piece_type = None
+
+        button_width, button_height = 120, 120
+        button_gap = 20
+        start_x = CHESS_WIDTH + (MENU_WIDTH - button_width) / 2
+        start_y = (CHESS_HEIGHT - (len(promotion_pieces) * button_height) - ((len(promotion_pieces) - 1) * button_gap)) / 2  # Adjust as necessary to fit in your menu
+
+        buttons = {}
+
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    pygame.quit()
+                    sys.exit()
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    for piece, rect in buttons.items():
+                        if rect.collidepoint(event.pos):
+                            selected_piece_type = piece
+                            running = False
+
+            # Draw the menu and buttons
+            color_background = DARK_GRAY
+            color_button = GRAY
+            pygame.draw.rect(self.screen, color_background, (CHESS_WIDTH, 0, MENU_WIDTH, CHESS_HEIGHT))
+            text_x, text_y = start_x - 25, start_y - 70
+            font_size = 42
+            font = pygame.font.SysFont(None, font_size)
+            text_surface = font.render("pick a piece", True, BLACK, None)
+            self.screen.blit(text_surface, (text_x, text_y))
+            y = start_y
+            for piece in promotion_pieces:
+                rect = pygame.Rect(start_x, y, button_width, button_height)
+                buttons[piece] = rect
+                pygame.draw.rect(self.screen, color_button, rect)  # Draw button
+                font = pygame.font.Font(None, 36)
+                self.screen.blit(self.pieces_images[piece + "_" + color], (start_x + 10, y + 10))
+
+                y += button_height + button_gap  # Adjust the y-coordinate for the next button
+
+            pygame.display.flip()  # Update the display
+
+        return selected_piece_type

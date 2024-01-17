@@ -6,8 +6,8 @@ from collections import Counter
 from board import Board
 
 class Chess:
-    def __init__(self):
-        pass
+    def __init__(self, board):
+        self.board = board
     
     def is_empty_position(self, board_matrix, position):
         for piece in board_matrix:
@@ -17,12 +17,10 @@ class Chess:
                 return False
         return True
     
-    def square_to_position(self, square):
-        # Convert a square (row, col) to a position (bit index)
+    def square_to_position(self, square): # Convert a square (row, col) to a position (bit index)
         return 1 << (square[0] * 8 + square[1])
 
-    def position_to_square(self, position):
-        # Convert a position (bit index) to a square (row, col)
+    def position_to_square(self, position): # Convert a position (bit index) to a square (row, col)
         row = int(math.log(position, 2) // 8)
         col = int(math.log(position, 2) % 8)
         return row, col
@@ -41,7 +39,6 @@ class Chess:
     def calculate_possible_moves(self, board_matrix, position):
         piece_type, piece_color = self.identify_piece(position, board_matrix)
         moves = []
-        #print(piece_type, piece_color, position)
         if piece_type:
             if piece_type == "PAWN":
                 moves += self.calculate_pawn_moves(piece_color, position, board_matrix)
@@ -194,7 +191,7 @@ class Chess:
         _, other_piece_color = self.identify_piece(position, board_matrix)
         return other_piece_color and other_piece_color == piece_color
     
-    def move_piece(self, start_position, end_position, board_matrix):
+    def move_piece(self, start_position, end_position, board_matrix, promotion_piece_type = "QUEEN"):
         moved_piece_type, moved_piece_color = self.identify_piece(start_position, board_matrix)
         target_piece_type, target_piece_color = self.identify_piece(end_position, board_matrix)
         
@@ -222,6 +219,9 @@ class Chess:
                     board_matrix["en_passant_position"] = (start_position >> 8)
                 else:
                     board_matrix["en_passant_position"] = (start_position << 8)
+            if (end_position | -72057594037927681) == -72057594037927681:
+                self.pawn_promotion(start_position, end_position, board_matrix, moved_piece_color, promotion_piece_type)
+                return
         else:
             board_matrix["en_passant_position"] = None
                 
@@ -373,3 +373,9 @@ class Chess:
             board_matrix["ROOK_BLACK"] &= ~(128)
             board_matrix["ROOK_BLACK"] |= (32)
             board_matrix["casteling_rights"] &= ~(3)
+            
+    def pawn_promotion(self, start_position, end_position, board_matrix, moved_piece_color, promotion_piece_type):
+        if not promotion_piece_type:
+            promotion_piece_type = self.board.get_promotion_piece(moved_piece_color)
+        board_matrix["PAWN_" + moved_piece_color] &= ~(start_position)
+        board_matrix[promotion_piece_type + "_" + moved_piece_color] |= (end_position)

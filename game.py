@@ -31,7 +31,7 @@ class ChessGame:
         self.move_counter = 0
         self.board = Board()
         self.board.update_board(self.board_matrix, None, [], None, [])
-        self.chess = Chess()
+        self.chess = Chess(self.board)
 
     def start_game(self):
         pygame.init()
@@ -66,7 +66,7 @@ class ChessGame:
         print("selected position: " + str(selected_position))
         
         if selected_position in possible_moves:
-            self.chess.move_piece(origin_position, selected_position, self.board_matrix)
+            self.chess.move_piece(origin_position, selected_position, self.board_matrix, None)
             possible_moves = []
             selected_position = None
             self.end_turn()
