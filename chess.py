@@ -8,10 +8,12 @@ from board import Board
 class Chess:
     def __init__(self, board):
         self.board = board
+        self.hash_board_archive = []
+        self.board_archive = []
     
     def is_empty_position(self, board_matrix, position):
         for piece in board_matrix:
-            if piece in ("casteling_rights", "en_passant_position"):
+            if piece in ("casteling_rights", "en_passant_position", "last_capture_or_pawn_move"):
                 continue
             if (board_matrix[piece] & position) != 0:
                 return False
@@ -27,7 +29,7 @@ class Chess:
     
     def identify_piece(self, position, board_matrix):
         for piece in board_matrix:
-            if piece in ("casteling_rights", "en_passant_position"):
+            if piece in ("casteling_rights", "en_passant_position", "last_capture_or_pawn_move"):
                 continue
             if (board_matrix[piece] & position) == position:
                 piece = piece.split('_')
@@ -191,12 +193,13 @@ class Chess:
         _, other_piece_color = self.identify_piece(position, board_matrix)
         return other_piece_color and other_piece_color == piece_color
     
-    def move_piece(self, start_position, end_position, board_matrix, promotion_piece_type = "QUEEN"):
+    def move_piece(self, start_position, end_position, board_matrix, promotion_piece_type = "QUEEN", move_counter = None):
         moved_piece_type, moved_piece_color = self.identify_piece(start_position, board_matrix)
         target_piece_type, target_piece_color = self.identify_piece(end_position, board_matrix)
         
         if not target_piece_color in (None, moved_piece_color): # Clear the captured piece
             board_matrix[target_piece_type + "_" + target_piece_color] &= ~(end_position) 
+            board_matrix["last_capture_or_pawn_move"] = move_counter
 
         if moved_piece_type in ("KING", "ROOK"): # Casteling logic
             if (start_position in (72057594037927936, 1152921504606846976, 1, 16)) and (end_position in (72057594037927936, 1152921504606846976, 1, 16)) and self.can_castle_queenside(moved_piece_color, board_matrix):
@@ -207,19 +210,20 @@ class Chess:
                 return
             self.update_casteling_rights(start_position, moved_piece_color, board_matrix)
         
-        if moved_piece_type == "PAWN": # En passant logic
-            if end_position == board_matrix["en_passant_position"]:
+        if moved_piece_type == "PAWN":
+            board_matrix["last_capture_or_pawn_move"] = move_counter
+            if end_position == board_matrix["en_passant_position"]: # Remove pawn if en passant move
                 if moved_piece_color == "WHITE":
                     board_matrix["PAWN_BLACK"] &= ~(end_position << 8)
                 else:
                     board_matrix["PAWN_WHITE"] &= ~(end_position >> 8)
             board_matrix["en_passant_position"] = None
-            if (start_position | 71776119061282560) == 71776119061282560 and (end_position | 1099494850560) == 1099494850560:
+            if (start_position | 71776119061282560) == 71776119061282560 and (end_position | 1099494850560) == 1099494850560: # Save en passant position if pawn moved 2 ranks
                 if moved_piece_color == "WHITE":
                     board_matrix["en_passant_position"] = (start_position >> 8)
                 else:
                     board_matrix["en_passant_position"] = (start_position << 8)
-            if (end_position | -72057594037927681) == -72057594037927681:
+            if (end_position | -72057594037927681) == -72057594037927681: # Promote pawn on last rank
                 self.pawn_promotion(start_position, end_position, board_matrix, moved_piece_color, promotion_piece_type)
                 return
         else:
@@ -379,3 +383,13 @@ class Chess:
             promotion_piece_type = self.board.get_promotion_piece(moved_piece_color)
         board_matrix["PAWN_" + moved_piece_color] &= ~(start_position)
         board_matrix[promotion_piece_type + "_" + moved_piece_color] |= (end_position)
+        
+    def archive_board(self, board_matrix):
+        self.board_archive.append(board_matrix)
+        self.hash_board_archive.append(hash(str(board_matrix)))
+        
+    def check_threefold_repetition(self):
+        return Counter(self.hash_board_archive).most_common(1)[0][1] >= 3
+    
+    def check_fifty_move_rule(self, move_counter, board_matrix):
+        return (move_counter - board_matrix["last_capture_or_pawn_move"]) >= 100

@@ -69,7 +69,7 @@ class Board:
 
     def draw_pieces(self, board_matrix):
         for piece, bitboard in board_matrix.items():
-            if piece in ("casteling_rights", "en_passant_position"):
+            if piece in ("casteling_rights", "en_passant_position", "last_capture_or_pawn_move"):
                 continue
             for position in range(64):
                 row = position // 8
@@ -137,14 +137,12 @@ class Board:
                     running = False
                     pygame.quit()
                     sys.exit()
-
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     for piece, rect in buttons.items():
                         if rect.collidepoint(event.pos):
                             selected_piece_type = piece
                             running = False
 
-            # Draw the menu and buttons
             color_background = DARK_GRAY
             color_button = GRAY
             pygame.draw.rect(self.screen, color_background, (CHESS_WIDTH, 0, MENU_WIDTH, CHESS_HEIGHT))
@@ -157,12 +155,12 @@ class Board:
             for piece in promotion_pieces:
                 rect = pygame.Rect(start_x, y, button_width, button_height)
                 buttons[piece] = rect
-                pygame.draw.rect(self.screen, color_button, rect)  # Draw button
+                pygame.draw.rect(self.screen, color_button, rect)
                 font = pygame.font.Font(None, 36)
                 self.screen.blit(self.pieces_images[piece + "_" + color], (start_x + 10, y + 10))
 
-                y += button_height + button_gap  # Adjust the y-coordinate for the next button
+                y += button_height + button_gap 
 
-            pygame.display.flip()  # Update the display
+            pygame.display.flip()
 
         return selected_piece_type

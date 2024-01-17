@@ -23,7 +23,8 @@ class ChessGame:
             "QUEEN_WHITE": 0b0000100000000000000000000000000000000000000000000000000000000000,
             "KING_WHITE": 0b0001000000000000000000000000000000000000000000000000000000000000,
             "casteling_rights": 0b1111, #white-queenside, white-kingside, black-queenside, black-kingside
-            "en_passant_position": 0
+            "en_passant_position": 0,
+            "last_capture_or_pawn_move": 0
         }
         self.white_turn = True
         self.check_position = None
@@ -66,7 +67,7 @@ class ChessGame:
         print("selected position: " + str(selected_position))
         
         if selected_position in possible_moves:
-            self.chess.move_piece(origin_position, selected_position, self.board_matrix, None)
+            self.chess.move_piece(origin_position, selected_position, self.board_matrix, None, self.move_counter)
             possible_moves = []
             selected_position = None
             self.end_turn()
@@ -80,6 +81,10 @@ class ChessGame:
         
     def end_turn(self):
         self.check_position = None
+        self.chess.archive_board(self.board_matrix)
+        if self.chess.check_threefold_repetition() or self.chess.check_fifty_move_rule(self.move_counter, self.board_matrix):
+            self.proclaim_draw()
+            return
         
         self.move_counter += 1
         self.white_turn = not self.white_turn
@@ -88,9 +93,13 @@ class ChessGame:
             if self.chess.is_in_checkmate(self.white_turn, self.board_matrix):
                 opponent_color = "BLACK" if self.white_turn else "WHITE"
                 self.winner_positions = [self.board_matrix["KING_" + opponent_color]]
+                return
             else:
                 own_color = "WHITE" if self.white_turn else "BLACK"
                 self.check_position = self.board_matrix["KING_" + own_color]
         elif self.chess.is_stalemate(self.white_turn, self.board_matrix):
-            self.winner_positions = [self.board_matrix["KING_WHITE"], self.board_matrix["KING_BLACK"]]
+            self.proclaim_draw()
+            
+    def proclaim_draw(self):
+        self.winner_positions = [self.board_matrix["KING_WHITE"], self.board_matrix["KING_BLACK"]]
             
