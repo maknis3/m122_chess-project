@@ -217,7 +217,7 @@ class Chess:
                 else:
                     board_matrix["PAWN_WHITE"] &= ~(end_position >> 8)
             board_matrix["en_passant_position"] = None
-            if (start_position | 71776119061282560) == 71776119061282560 and (end_position | 280375481794560) == 280375481794560:
+            if (start_position | 71776119061282560) == 71776119061282560 and (end_position | 1099494850560) == 1099494850560:
                 if moved_piece_color == "WHITE":
                     board_matrix["en_passant_position"] = (start_position >> 8)
                 else:
