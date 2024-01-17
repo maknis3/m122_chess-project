@@ -31,11 +31,11 @@ class ChessGame:
         self.winner_positions = []
         self.move_counter = 0
         self.board = Board()
-        self.board.update_board(self.board_matrix, None, [], None, [])
+        pygame.init()
+        self.board.update_board(self.board_matrix, None, [], None, [], None, 0)
         self.chess = Chess(self.board)
 
     def start_game(self):
-        pygame.init()
         running = True
         selected_position = None
         origin_position = None
@@ -51,7 +51,7 @@ class ChessGame:
                     if (x < 800) and self.winner_positions == []:
                         selected_position, possible_moves, origin_position = self.chess_interaction(x, y, possible_moves, origin_position)
 
-            self.board.update_board(self.board_matrix, selected_position, possible_moves, self.check_position, self.winner_positions)
+            self.board.update_board(self.board_matrix, selected_position, possible_moves, self.check_position, self.winner_positions, self.white_turn, self.move_counter)
             pygame.display.flip()
 
         pygame.quit()

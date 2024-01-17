@@ -35,17 +35,19 @@ class Board:
             "KNIGHT_BLACK": pygame.image.load("images/black-knight.png")
         }
         self.menu_images = {
-            "basic": pygame.image.load("images/menu_basic.png")
+            "left": pygame.image.load("images/left.png"),
+            "right": pygame.image.load("images/right.png"),
+            "far_right": pygame.image.load("images/far_right.png")
         }
 
-    def update_board(self, chess_pieces, selected_square, possible_moves, check_position, winner_positions):
+    def update_board(self, chess_pieces, selected_square, possible_moves, check_position, winner_positions, white_turn, move_counter):
         self.draw_board(check_position, winner_positions)
         self.draw_pieces(chess_pieces)
         if selected_square:
             self.mark_selected_square(selected_square)
         if possible_moves != []:
             self.mark_possible_moves(possible_moves)
-        self.load_menu()
+        self.load_menu(white_turn, move_counter)
 
     def draw_board(self, check_position, winner_positions):
         check_square = None
@@ -116,8 +118,42 @@ class Board:
         col = int(math.log(position, 2) % 8)
         return row, col
 
-    def load_menu(self):
-        self.screen.blit(self.menu_images["basic"], (CHESS_WIDTH, 0))
+    def load_menu(self, white_turn, move_counter):
+        pygame.draw.rect(self.screen, DARK_GRAY, (CHESS_WIDTH, 0, MENU_WIDTH, CHESS_HEIGHT))
+        
+        circle_radius = 35
+        circle_distance_border = 50
+        
+        if white_turn != None:
+            if white_turn:
+                pygame.draw.circle(self.screen, WHITE, (CHESS_WIDTH + circle_distance_border, CHESS_HEIGHT - circle_distance_border), circle_radius)
+            else:
+                pygame.draw.circle(self.screen, BLACK, (CHESS_WIDTH + circle_distance_border, circle_distance_border), circle_radius)
+        
+        border_gap = 30
+        
+        font_size = 42
+        text_x, text_y = CHESS_WIDTH + border_gap, (CHESS_HEIGHT / 2) - (font_size - 5)
+        font = pygame.font.SysFont(None, font_size)
+        text_surface = font.render("move: " + str(int(move_counter/2) + 1), True, WHITE, None)
+        self.screen.blit(text_surface, (text_x, text_y))
+        
+        buttons = {}
+        button_list = ["left", "right", "far_right"]
+        color_button = GRAY
+        button_width, button_height = 84, 84
+        button_gap = 20
+        start_x, start_y = CHESS_WIDTH + border_gap, (CHESS_HEIGHT / 2) + 10
+        x = start_x
+        for button_type in button_list:
+            rect = pygame.Rect(x, start_y, button_width, button_height)
+            buttons[button_type] = rect
+            pygame.draw.rect(self.screen, color_button, rect)
+            self.screen.blit(self.menu_images[button_type], (x + 10, start_y + 10))
+            
+            x += button_width + button_gap 
+        
+                
         
     def get_promotion_piece(self, color):
         promotion_pieces = ["QUEEN", "ROOK", "BISHOP", "KNIGHT"]
@@ -143,20 +179,18 @@ class Board:
                             selected_piece_type = piece
                             running = False
 
-            color_background = DARK_GRAY
             color_button = GRAY
-            pygame.draw.rect(self.screen, color_background, (CHESS_WIDTH, 0, MENU_WIDTH, CHESS_HEIGHT))
+            pygame.draw.rect(self.screen, DARK_GRAY, (CHESS_WIDTH, 0, MENU_WIDTH, CHESS_HEIGHT))
             text_x, text_y = start_x - 25, start_y - 70
             font_size = 42
             font = pygame.font.SysFont(None, font_size)
-            text_surface = font.render("pick a piece", True, BLACK, None)
+            text_surface = font.render("pick a piece", True, WHITE, None)
             self.screen.blit(text_surface, (text_x, text_y))
             y = start_y
             for piece in promotion_pieces:
                 rect = pygame.Rect(start_x, y, button_width, button_height)
                 buttons[piece] = rect
                 pygame.draw.rect(self.screen, color_button, rect)
-                font = pygame.font.Font(None, 36)
                 self.screen.blit(self.pieces_images[piece + "_" + color], (start_x + 10, y + 10))
 
                 y += button_height + button_gap 
