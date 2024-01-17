@@ -234,25 +234,24 @@ class Chess:
             lookup_position = (1 << position_factor)
             if self.is_own_piece(lookup_position, color, board_matrix):
                 lookup_piece_type, lookup_piece_color = self.identify_piece(lookup_position, board_matrix)
-                match lookup_piece_type:
-                    case "PAWN":
-                        if position in self.calculate_pawn_moves(lookup_piece_color, lookup_position, board_matrix, True):
-                            return True
-                    case "ROOK":
-                        if position in self.calculate_rook_moves(lookup_piece_color, lookup_position, board_matrix, True):
-                            return True
-                    case "BISHOP":
-                        if position in self.calculate_bishop_moves(lookup_piece_color, lookup_position, board_matrix):
-                            return True
-                    case "KNIGHT":
-                        if position in self.calculate_knight_moves(lookup_piece_color, lookup_position, board_matrix):
-                            return True
-                    case "QUEEN":
-                        if position in self.calculate_queen_moves(lookup_piece_color, lookup_position, board_matrix):
-                            return True
-                    case "KING":
-                        if position in self.calculate_king_moves(lookup_piece_color, lookup_position, board_matrix, True):
-                            return True
+                if lookup_piece_type == "PAWN":
+                    if position in self.calculate_pawn_moves(lookup_piece_color, lookup_position, board_matrix, True):
+                        return True
+                if lookup_piece_type == "ROOK":
+                    if position in self.calculate_rook_moves(lookup_piece_color, lookup_position, board_matrix, True):
+                        return True
+                if lookup_piece_type == "BISHOP":
+                    if position in self.calculate_bishop_moves(lookup_piece_color, lookup_position, board_matrix):
+                        return True
+                if lookup_piece_type == "KNIGHT":
+                    if position in self.calculate_knight_moves(lookup_piece_color, lookup_position, board_matrix):
+                        return True
+                if lookup_piece_type == "QUEEN":
+                    if position in self.calculate_queen_moves(lookup_piece_color, lookup_position, board_matrix):
+                        return True
+                if lookup_piece_type == "KING":
+                    if position in self.calculate_king_moves(lookup_piece_color, lookup_position, board_matrix, True):
+                        return True
                 
         return False
     
