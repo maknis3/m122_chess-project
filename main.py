@@ -3,5 +3,5 @@ import cProfile
 
 if __name__ == "__main__":
     game = ChessGame()
-    game.start_game()
-    #cProfile.run("game.start_game()", "profile_output2") #bash: snakeviz profile_output
+    #game.start_game()
+    cProfile.run("game.start_game()", "profile_output") #bash: snakeviz profile_output

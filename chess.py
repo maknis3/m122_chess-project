@@ -12,12 +12,12 @@ class Chess:
         self.board_archive = []
     
     def is_empty_position(self, board_matrix, position):
-        for piece in board_matrix:
+        all_pieces = 0
+        for piece, piece_position in board_matrix.items():
             if piece in ("casteling_rights", "en_passant_position", "last_capture_or_pawn_move"):
                 continue
-            if (board_matrix[piece] & position) != 0:
-                return False
-        return True
+            all_pieces |= piece_position
+        return (all_pieces & position) == 0
     
     def square_to_position(self, square): # Convert a square (row, col) to a position (bit index)
         return 1 << (square[0] * 8 + square[1])
@@ -28,14 +28,11 @@ class Chess:
         return row, col
     
     def identify_piece(self, position, board_matrix):
-        for piece in board_matrix:
+        for piece, piece_position in board_matrix.items():
             if piece in ("casteling_rights", "en_passant_position", "last_capture_or_pawn_move"):
                 continue
-            if (board_matrix[piece] & position) == position:
-                piece = piece.split('_')
-                piece_type = piece[0]
-                piece_color = piece[1]
-                return piece_type, piece_color
+            if (piece_position & position) == position:
+                return piece.split('_')
         return None, None
 
     def calculate_possible_moves(self, board_matrix, position):
@@ -93,12 +90,14 @@ class Chess:
             for i in range(1, 8):
                 new_row, new_col = row + d_row * i, col + d_col * i
                 if 0 <= new_row < 8 and 0 <= new_col < 8:
-                    new_position = self.square_to_position((new_row, new_col))
-                    if self.is_empty_position(board_matrix, new_position):
-                        moves.append(new_position)
+                    target_position = self.square_to_position((new_row, new_col))
+                    _, target_piece_color = self.identify_piece(target_position, board_matrix)
+                    if target_piece_color == None:
+                        moves.append(target_position)
+                    elif target_piece_color != piece_color:
+                        moves.append(target_position)
+                        break
                     else:
-                        if self.is_opponent_piece(new_position, piece_color, board_matrix):
-                            moves.append(new_position)
                         break
                 else:
                     break
@@ -121,9 +120,10 @@ class Chess:
             r, c = row + dr, col + dc
             while 0 <= r < 8 and 0 <= c < 8:
                 target_position = self.square_to_position((r, c))
-                if self.is_empty_position(board_matrix, target_position):
+                _, target_piece_color = self.identify_piece(target_position, board_matrix)
+                if target_piece_color == None:
                     moves.append(target_position)
-                elif self.is_opponent_piece(target_position, piece_color, board_matrix):
+                elif target_piece_color != piece_color:
                     moves.append(target_position)
                     break
                 else:
@@ -143,7 +143,8 @@ class Chess:
             r, c = row + dr, col + dc
             if 0 <= r < 8 and 0 <= c < 8:
                 target_position = self.square_to_position((r, c))
-                if self.is_empty_position(board_matrix, target_position) or self.is_opponent_piece(target_position, piece_color, board_matrix):
+                _, target_piece_color = self.identify_piece(target_position, board_matrix)
+                if target_piece_color != piece_color:
                     moves.append(target_position)
 
         return moves
@@ -167,7 +168,8 @@ class Chess:
             r, c = row + dr, col + dc
             if 0 <= r < 8 and 0 <= c < 8:
                 target_position = self.square_to_position((r, c))
-                if self.is_empty_position(board_matrix, target_position) or self.is_opponent_piece(target_position, piece_color, board_matrix):
+                _, target_piece_color = self.identify_piece(target_position, board_matrix)
+                if target_piece_color != piece_color:
                     if only_impact or not self.is_position_attacked_by(opponent_color, target_position, board_matrix):
                         moves.append(target_position)
                         
@@ -177,7 +179,7 @@ class Chess:
                     moves.append(72057594037927936)
                 if self.can_castle_kingside(piece_color, board_matrix):
                     moves.append(9223372036854775808)
-            if position == 16 and piece_color == "BLACK":
+            elif position == 16 and piece_color == "BLACK":
                 if self.can_castle_queenside(piece_color, board_matrix):
                     moves.append(1)
                 if self.can_castle_kingside(piece_color, board_matrix):
@@ -236,8 +238,8 @@ class Chess:
     def is_position_attacked_by(self, color, position, board_matrix):
         for position_factor in range(64):
             lookup_position = (1 << position_factor)
-            if self.is_own_piece(lookup_position, color, board_matrix):
-                lookup_piece_type, lookup_piece_color = self.identify_piece(lookup_position, board_matrix)
+            lookup_piece_type, lookup_piece_color = self.identify_piece(lookup_position, board_matrix)
+            if color == lookup_piece_color:
                 if lookup_piece_type == "PAWN":
                     if position in self.calculate_pawn_moves(lookup_piece_color, lookup_position, board_matrix, True):
                         return True
@@ -260,18 +262,16 @@ class Chess:
         return False
     
     def move_will_cause_check(self, piece_color, board_matrix, start_position, end_position):
-        white_turn = (piece_color == "WHITE")
         temp_board_matrix = board_matrix.copy()
         self.move_piece(start_position, end_position, temp_board_matrix)
         
-        return self.is_in_check(white_turn, temp_board_matrix)
+        return self.is_in_check(piece_color == "WHITE", temp_board_matrix)
     
     def is_in_check(self, white_turn, board_matrix):
         own_color = "WHITE" if white_turn else "BLACK"
         opponent_color = "BLACK" if white_turn else "WHITE"
-        king_position = board_matrix["KING_" + own_color]
         
-        return self.is_position_attacked_by(opponent_color, king_position, board_matrix)
+        return self.is_position_attacked_by(opponent_color, board_matrix["KING_" + own_color], board_matrix)
     
     def is_in_checkmate(self, white_turn, board_matrix):
         own_color = "WHITE" if white_turn else "BLACK"

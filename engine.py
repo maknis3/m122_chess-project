@@ -5,12 +5,14 @@ class Engine:
     def __init__(self, chess):
         self.chess = chess
         self.number_of_evaluations = 0
+        self.board_evaluations = {}
     
     def calculate_move(self, initial_board_matrix, move_counter):
         best_eval = -100000
         best_from_position = None
         best_to_position = None
         self.number_of_evaluations = 0
+        self.board_evaluations = {}
         
         for position_exponent in range(64):
             from_position = (1 << position_exponent)
@@ -28,6 +30,10 @@ class Engine:
         return best_from_position, best_to_position
     
     def evaluate(self, board_matrix, maximazing_player, move_counter):
+        board_matrix_hashed = hash(str(board_matrix))
+        if board_matrix_hashed in self.board_evaluations:
+            return self.board_evaluations[board_matrix_hashed]
+        
         eval = 0
         self.number_of_evaluations += 1
         #pov_color = "BLACK" if maximazing_player else "WHITE"
@@ -71,7 +77,7 @@ class Engine:
                 eval += temp_eval if maximazing_player else -temp_eval
             else:
                 continue
-        
+        self.board_evaluations[board_matrix_hashed] = eval
         return eval
     
     def minimax(self, board_matrix, depth, alpha, beta, maximazing_player, move_counter):
