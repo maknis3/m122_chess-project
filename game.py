@@ -50,6 +50,8 @@ class ChessGame:
                     
                     if (x < 800) and self.winner_positions == []:
                         selected_position, possible_moves, origin_position = self.chess_interaction(x, y, possible_moves, origin_position)
+                    else: 
+                        self.menu_iteraction((x, y))
 
             self.board.update_board(self.board_matrix, selected_position, possible_moves, self.check_position, self.winner_positions, self.white_turn, self.move_counter)
             pygame.display.flip()
@@ -103,3 +105,41 @@ class ChessGame:
     def proclaim_draw(self):
         self.winner_positions = [self.board_matrix["KING_WHITE"], self.board_matrix["KING_BLACK"]]
             
+    def menu_iteraction(self, coordinates):
+        x, y = coordinates
+        buttons = self.board.get_menu_buttons()
+        displayed_move = self.move_counter
+        running = True
+
+        for button_type, button in buttons.items():
+            if button.collidepoint((x, y)) and button_type == "left":
+                displayed_move -= 1
+
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    for button_type, button in buttons.items():
+                        if button.collidepoint((x, y)):
+                            if button_type == "left":
+                                displayed_move -= 1
+                            elif button_type == "right":
+                                displayed_move += 1
+                            elif button_type == "far_right":
+                                displayed_move = self.move_counter
+                            else:
+                                continue
+                            archived_board = self.chess.get_archived_board(displayed_move)
+                            archived_white_turn = (displayed_move % 2) == 0
+                            archived_check_position = None
+                            if self.chess.is_in_check(archived_white_turn, archived_board):
+                                own_color = "WHITE" if archived_white_turn else "BLACK"
+                                archived_check_position = archived_board["KING_" + own_color]
+                            self.board.update_board(archived_board, None, None, archived_check_position, [], None, displayed_move)
+                            pygame.display.flip()
+
+            if displayed_move == self.move_counter:
+                running = False

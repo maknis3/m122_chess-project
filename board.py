@@ -39,6 +39,7 @@ class Board:
             "right": pygame.image.load("images/right.png"),
             "far_right": pygame.image.load("images/far_right.png")
         }
+        self.menu_buttons = {}
 
     def update_board(self, chess_pieces, selected_square, possible_moves, check_position, winner_positions, white_turn, move_counter):
         self.draw_board(check_position, winner_positions)
@@ -151,8 +152,12 @@ class Board:
             pygame.draw.rect(self.screen, color_button, rect)
             self.screen.blit(self.menu_images[button_type], (x + 10, start_y + 10))
             
-            x += button_width + button_gap 
+            x += button_width + button_gap
         
+        self.menu_buttons = buttons
+        
+    def get_menu_buttons(self):
+        return self.menu_buttons
                 
         
     def get_promotion_piece(self, color):
