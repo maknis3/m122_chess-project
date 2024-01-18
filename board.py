@@ -48,7 +48,7 @@ class Board:
             self.mark_selected_square(selected_square)
         if possible_moves != []:
             self.mark_possible_moves(possible_moves)
-        self.load_menu(white_turn, move_counter)
+        self.load_menu(white_turn, move_counter, winner_positions != [])
 
     def draw_board(self, check_position, winner_positions):
         check_square = None
@@ -113,19 +113,18 @@ class Board:
             radius = self.square_size // 2 - 25
             pygame.draw.circle(self.screen, BLUE, (center_x, center_y), radius, 5)
         
-    def position_to_square(self, position):
-        # Convert a position (bit index) to a square (row, col)
+    def position_to_square(self, position): # Convert a position (bit index) to a square (row, col)
         row = int(math.log(position, 2) // 8)
         col = int(math.log(position, 2) % 8)
         return row, col
 
-    def load_menu(self, white_turn, move_counter):
+    def load_menu(self, white_turn, move_counter, game_finished):
         pygame.draw.rect(self.screen, DARK_GRAY, (CHESS_WIDTH, 0, MENU_WIDTH, CHESS_HEIGHT))
         
         circle_radius = 35
         circle_distance_border = 50
         
-        if white_turn != None:
+        if white_turn != None and not game_finished:
             if white_turn:
                 pygame.draw.circle(self.screen, WHITE, (CHESS_WIDTH + circle_distance_border, CHESS_HEIGHT - circle_distance_border), circle_radius)
             else:

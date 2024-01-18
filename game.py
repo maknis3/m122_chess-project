@@ -40,6 +40,7 @@ class ChessGame:
         selected_position = None
         origin_position = None
         possible_moves = []
+        self.chess.archive_board(self.board_matrix)
 
         while running:
             for event in pygame.event.get():
@@ -105,15 +106,18 @@ class ChessGame:
     def proclaim_draw(self):
         self.winner_positions = [self.board_matrix["KING_WHITE"], self.board_matrix["KING_BLACK"]]
             
-    def menu_iteraction(self, coordinates):
-        x, y = coordinates
+    def menu_iteraction(self, clicked_coordinates):
+        x, y = clicked_coordinates
         buttons = self.board.get_menu_buttons()
         displayed_move = self.move_counter
+        archived_check_position = None
         running = True
 
         for button_type, button in buttons.items():
-            if button.collidepoint((x, y)) and button_type == "left":
+            if button.collidepoint((x, y)) and button_type == "left" and displayed_move > 0:
+                print("left button pressed")
                 displayed_move -= 1
+                self.remember_archived_board(displayed_move)
 
         while running:
             for event in pygame.event.get():
@@ -122,24 +126,33 @@ class ChessGame:
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = event.pos
                     for button_type, button in buttons.items():
                         if button.collidepoint((x, y)):
-                            if button_type == "left":
+                            if button_type == "left" and displayed_move > 0:
+                                print("left button pressed")
                                 displayed_move -= 1
-                            elif button_type == "right":
+                            elif button_type == "right" and displayed_move < self.move_counter:
+                                print("right button pressed")
                                 displayed_move += 1
                             elif button_type == "far_right":
+                                print("far right button pressed")
                                 displayed_move = self.move_counter
+                            if displayed_move == self.move_counter:
+                                return
                             else:
-                                continue
-                            archived_board = self.chess.get_archived_board(displayed_move)
-                            archived_white_turn = (displayed_move % 2) == 0
-                            archived_check_position = None
-                            if self.chess.is_in_check(archived_white_turn, archived_board):
-                                own_color = "WHITE" if archived_white_turn else "BLACK"
-                                archived_check_position = archived_board["KING_" + own_color]
-                            self.board.update_board(archived_board, None, None, archived_check_position, [], None, displayed_move)
-                            pygame.display.flip()
+                                self.remember_archived_board(displayed_move)
+                                
 
             if displayed_move == self.move_counter:
-                running = False
+                return
+            
+    def remember_archived_board(self, displayed_move):
+        archived_board = self.chess.get_archived_board(displayed_move)
+        archived_check_position = None
+        if self.chess.is_in_check(True, archived_board):
+            archived_check_position = archived_board["KING_WHITE"]
+        elif self.chess.is_in_check(False, archived_board):
+            archived_check_position = archived_board["KING_BLACK"]
+        self.board.update_board(archived_board, None, [], archived_check_position, [], None, displayed_move)
+        pygame.display.flip()

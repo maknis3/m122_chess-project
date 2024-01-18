@@ -385,7 +385,7 @@ class Chess:
         board_matrix[promotion_piece_type + "_" + moved_piece_color] |= (end_position)
         
     def archive_board(self, board_matrix):
-        self.board_archive.append(board_matrix)
+        self.board_archive.append(board_matrix.copy())
         self.hash_board_archive.append(hash(str(board_matrix)))
         
     def check_threefold_repetition(self):
@@ -393,3 +393,6 @@ class Chess:
     
     def check_fifty_move_rule(self, move_counter, board_matrix):
         return (move_counter - board_matrix["last_capture_or_pawn_move"]) >= 100
+    
+    def get_archived_board(self, move):
+        return self.board_archive[move]
