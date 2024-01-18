@@ -1,14 +1,11 @@
 import pygame
 import sys
-import math
 from board import Board
 from chess import Chess
+from engine import Engine
 
 class ChessGame:
     def __init__(self):
-        self.initialize_game()
-
-    def initialize_game(self):
         self.board_matrix = {
             "PAWN_BLACK": 0b0000000000000000000000000000000000000000000000001111111100000000,
             "ROOK_BLACK": 0b0000000000000000000000000000000000000000000000000000000010000001,
@@ -34,6 +31,7 @@ class ChessGame:
         pygame.init()
         self.board.update_board(self.board_matrix, None, [], None, [], None, 0)
         self.chess = Chess(self.board)
+        self.engine = Engine(self.chess)
 
     def start_game(self):
         running = True
@@ -67,13 +65,17 @@ class ChessGame:
         row = y // self.board.square_size
         
         selected_position = self.chess.square_to_position((row, col))
-        print("selected position: " + str(selected_position))
         
         if selected_position in possible_moves:
             self.chess.move_piece(origin_position, selected_position, self.board_matrix, None, self.move_counter)
             possible_moves = []
             selected_position = None
             self.end_turn()
+            
+            engine_from_position, engine_to_position = self.engine.calculate_move(self.board_matrix, self.move_counter)
+            self.chess.move_piece(engine_from_position, engine_to_position, self.board_matrix, "QUEEN", self.move_counter)
+            self.end_turn()
+            
         elif self.chess.is_own_piece(selected_position, "WHITE" if self.white_turn else "BLACK", self.board_matrix):
             possible_moves = self.chess.calculate_possible_moves(self.board_matrix, selected_position)
             origin_position = selected_position
@@ -115,7 +117,6 @@ class ChessGame:
 
         for button_type, button in buttons.items():
             if button.collidepoint((x, y)) and button_type == "left" and displayed_move > 0:
-                print("left button pressed")
                 displayed_move -= 1
                 self.remember_archived_board(displayed_move)
 
@@ -130,13 +131,10 @@ class ChessGame:
                     for button_type, button in buttons.items():
                         if button.collidepoint((x, y)):
                             if button_type == "left" and displayed_move > 0:
-                                print("left button pressed")
                                 displayed_move -= 1
                             elif button_type == "right" and displayed_move < self.move_counter:
-                                print("right button pressed")
                                 displayed_move += 1
                             elif button_type == "far_right":
-                                print("far right button pressed")
                                 displayed_move = self.move_counter
                             if displayed_move == self.move_counter:
                                 return

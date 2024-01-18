@@ -1,264 +1,128 @@
-import pygame
-import sys
-import copy
 from collections import Counter
-from board import Board
-from pieces import ChessPiece, Color, Piece
 from chess import Chess
 
-PIECE_WORTH = {
-    Piece.PAWN.value: 1,
-    Piece.BISHOP.value: 3,
-    Piece.KNIGHT.value: 3,
-    Piece.ROOK.value: 5,
-    Piece.QUEEN.value: 7,
-    Piece.KING.value: 0
-}
-
-PAWN_POS_WEIGHT = 3
-BISHOP_POS_WEIGHT = 1
-KNIGHT_POS_WEIGHT = 2
-ROOK_POS_WEIGHT = 1
-QUEEN_POS_WEIGHT = 1
-KING_POS_WEIGHT = 2
-IN_CHECK_BONUS = 2
-
-PAWN_POS_BONUS = {
-    Color.WHITE.value: 
-    [
-        [0.8, 0.8, 0.9, 1.0, 1.0, 0.9, 0.8, 0.8],
-        [0.7, 0.7, 0.8, 0.8, 0.8, 0.8, 0.7, 0.7],
-        [0.6, 0.6, 0.7, 0.7, 0.7, 0.7, 0.6, 0.6],
-        [0.5, 0.5, 0.6, 0.6, 0.6, 0.6, 0.5, 0.5],
-        [0.4, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.4],
-        [0.3, 0.3, 0.4, 0.4, 0.4, 0.4, 0.3, 0.3],
-        [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1] 
-    ],
-    Color.BLACK.value:
-    [
-        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-        [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-        [0.3, 0.3, 0.4, 0.4, 0.4, 0.4, 0.3, 0.3],
-        [0.4, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.4],
-        [0.5, 0.5, 0.6, 0.6, 0.6, 0.6, 0.5, 0.5],
-        [0.6, 0.6, 0.7, 0.7, 0.7, 0.7, 0.6, 0.6],
-        [0.7, 0.7, 0.8, 0.8, 0.8, 0.8, 0.7, 0.7],
-        [0.8, 0.8, 0.9, 1.0, 1.0, 0.9, 0.8, 0.8] 
-    ]
-}
-KNIGHT_POS_BONUS = [
-    [0.2, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.2],
-    [0.3, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
-    [0.3, 0.5, 0.6, 0.6, 0.6, 0.6, 0.5, 0.3],
-    [0.3, 0.5, 0.6, 0.7, 0.7, 0.6, 0.5, 0.3],
-    [0.3, 0.5, 0.6, 0.7, 0.7, 0.6, 0.5, 0.3],
-    [0.3, 0.5, 0.6, 0.6, 0.6, 0.6, 0.5, 0.3],
-    [0.3, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
-    [0.2, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.2] 
-]
-BISHOP_POS_BONUS = [
-    [0.4, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.4],
-    [0.3, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.3],
-    [0.3, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
-    [0.3, 0.4, 0.5, 0.6, 0.6, 0.5, 0.4, 0.3],
-    [0.3, 0.4, 0.5, 0.6, 0.6, 0.5, 0.4, 0.3],
-    [0.3, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
-    [0.3, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.3],
-    [0.4, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.4]
-]
-QUEEN_POS_BONUS = [
-    [0.2, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.2],
-    [0.3, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.3],
-    [0.3, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
-    [0.3, 0.4, 0.5, 0.6, 0.6, 0.5, 0.4, 0.3],
-    [0.3, 0.4, 0.5, 0.6, 0.6, 0.5, 0.4, 0.3],
-    [0.3, 0.4, 0.5, 0.5, 0.5, 0.5, 0.4, 0.3],
-    [0.3, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.3],
-    [0.2, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.2]
-]
-ROOK_POS_BONUS = []
-KING_POS_BONUS_OPENING = {
-    Color.WHITE.value: 
-    [
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-        [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-        [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-        [0.3, 0.4, 0.3, 0.2, 0.2, 0.3, 0.4, 0.3],
-        [0.6, 0.7, 0.9, 0.6, 0.5, 0.6, 0.9, 0.7]
-    ],
-    Color.BLACK.value: 
-    [
-        [0.6, 0.7, 0.9, 0.6, 0.5, 0.6, 0.9, 0.7],
-        [0.3, 0.4, 0.3, 0.2, 0.2, 0.3, 0.4, 0.3],
-        [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-        [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-        [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0]
-    ]
-    }
-KING_POS_BONUS_ENDGAME = {
-    Color.WHITE.value: 
-    [
-        [0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1],
-        [0.3, 0.3, 0.4, 0.4, 0.4, 0.4, 0.3, 0.3],
-        [0.4, 0.5, 0.6, 0.7, 0.7, 0.6, 0.4, 0.5],
-        [0.4, 0.6, 0.7, 0.8, 0.8, 0.7, 0.4, 0.6],
-        [0.3, 0.5, 0.7, 0.8, 0.8, 0.7, 0.3, 0.5],
-        [0.2, 0.4, 0.6, 0.7, 0.7, 0.6, 0.2, 0.4],
-        [0.2, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.2],
-        [0, 0, 0, 0.1, 0.1, 0, 0, 0]
-    ],
-    Color.BLACK.value: 
-    [
-        [0, 0, 0, 0.1, 0.1, 0, 0, 0],
-        [0.2, 0.2, 0.3, 0.3, 0.3, 0.3, 0.2, 0.2],
-        [0.2, 0.4, 0.6, 0.7, 0.7, 0.6, 0.2, 0.4],
-        [0.3, 0.5, 0.7, 0.8, 0.8, 0.7, 0.3, 0.5],
-        [0.4, 0.6, 0.7, 0.8, 0.8, 0.7, 0.4, 0.6],
-        [0.4, 0.5, 0.6, 0.7, 0.7, 0.6, 0.4, 0.5],
-        [0.3, 0.3, 0.4, 0.4, 0.4, 0.4, 0.3, 0.3],
-        [0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1]
-    ]
-}
-
-
-
-class ChessEngine:
+class Engine:
     def __init__(self, chess):
         self.chess = chess
+        self.number_of_evaluations = 0
     
-    def calculate_move(self, initial_board_matrix, en_passant_square, move_counter):
-        temp_board = copy.deepcopy(initial_board_matrix)
-        promotion_piece = None
-        best_promotion_piece = ChessPiece.QUEEN_BLACK
-        possible_moves = []
-        best_move_eval = -100000
-        from_best_move = None
-        to_best_move = None
+    def calculate_move(self, initial_board_matrix, move_counter):
+        best_eval = -100000
+        best_from_position = None
+        best_to_position = None
+        self.number_of_evaluations = 0
         
+        for position_exponent in range(64):
+            from_position = (1 << position_exponent)
+            if self.chess.is_own_piece(from_position, "BLACK", initial_board_matrix):
+                for to_position in self.chess.calculate_possible_moves(initial_board_matrix, from_position):
+                    temp_board = initial_board_matrix.copy()
+                    self.chess.move_piece(from_position, to_position, temp_board)
+                    new_eval = self.minimax(temp_board, 3, -1000, 1000, False, move_counter + 1)
+                    if new_eval > best_eval:
+                        best_from_position = from_position
+                        best_to_position = to_position
+                        best_eval = new_eval
         
-        for r in range(8):
-            for c in range(8):
-                if self.chess.is_valid_square((r, c), initial_board_matrix, Color.BLACK):
-                    for move in self.chess.calculate_possible_moves((r, c), initial_board_matrix, en_passant_square, Color.BLACK):
-                        if (move[0] == 7 and self.chess.get_piece((r, c), temp_board) == ChessPiece.PAWN_BLACK):
-                            for promotion_piece in (ChessPiece.ROOK_BLACK, ChessPiece.KNIGHT_BLACK, ChessPiece.BISHOP_BLACK, ChessPiece.QUEEN_BLACK):
-                                temp_board = copy.deepcopy(initial_board_matrix)
-                                temp_board, en_passant_square = self.chess.move_piece((r, c), move, temp_board, en_passant_square, Color.BLACK, promotion_piece)
-                                new_eval =  self.minimax(temp_board, en_passant_square, promotion_piece, 1, -10000, 10000, False, move_counter + 1)
-                                if new_eval > best_move_eval:
-                                    from_best_move = (r, c)
-                                    to_best_move = move
-                                    best_promotion_piece = promotion_piece
-                            continue
-                        temp_board = copy.deepcopy(initial_board_matrix)
-                        temp_board, en_passant_square = self.chess.move_piece((r, c), move, temp_board, en_passant_square, Color.BLACK)
-                        new_eval =  self.minimax(temp_board, en_passant_square, 1, -10000, 10000, False, move_counter + 1)
-                        if new_eval > best_move_eval:
-                            from_best_move = (r, c)
-                            to_best_move = move
-                            best_move_eval = new_eval
+        print("number of evaluate calls: " + str(self.number_of_evaluations))
+        return best_from_position, best_to_position
     
-        return from_best_move, to_best_move, best_promotion_piece
-    
-    def evaluate(self, board_matrix, player, move_counter, en_passant_square):
-        evaluation = 0
-        if self.chess.is_checkmate(board_matrix, en_passant_square, player):
-            return -100000
-        if self.chess.is_checkmate(board_matrix, en_passant_square, Color.WHITE if player == Color.BLACK else Color.BLACK):
-            return 100000
+    def evaluate(self, board_matrix, maximazing_player, move_counter):
+        eval = 0
+        self.number_of_evaluations += 1
+        #pov_color = "BLACK" if maximazing_player else "WHITE"
         
-        for r in range(8):
-            for c in range(8):
-                piece = self.chess.get_piece((r, c), board_matrix)
-                if piece == ChessPiece.EMPTY:
-                    continue
-                if piece.value[1] == Piece.PAWN.value:
-                    temp_eval = PIECE_WORTH[Piece.PAWN.value]
-                    temp_eval += PAWN_POS_WEIGHT * PAWN_POS_BONUS[piece.value[0]][r][c]
-                if piece.value[1] == Piece.BISHOP.value:
-                    temp_eval = PIECE_WORTH[Piece.BISHOP.value]
-                    temp_eval += BISHOP_POS_WEIGHT * BISHOP_POS_BONUS[r][c]
-                if piece.value[1] == Piece.KNIGHT.value:
-                    temp_eval = PIECE_WORTH[Piece.KNIGHT.value]
-                    temp_eval += KNIGHT_POS_WEIGHT * KNIGHT_POS_BONUS[r][c]
-                if piece.value[1] == Piece.ROOK.value:
-                    temp_eval = PIECE_WORTH[Piece.ROOK.value]
-                if piece.value[1] == Piece.QUEEN.value:
-                    temp_eval = PIECE_WORTH[Piece.QUEEN.value]
-                    temp_eval += QUEEN_POS_WEIGHT * QUEEN_POS_BONUS[r][c]
-                if piece.value[1] == Piece.KING.value:
-                    if move_counter < 80:
-                        temp_eval = KING_POS_WEIGHT * KING_POS_BONUS_OPENING[piece.value[0]][r][c]
+        if self.chess.is_in_check(not maximazing_player, board_matrix):
+            if self.chess.is_in_checkmate(not maximazing_player, board_matrix):
+                return -10000
+            else:
+                eval -= IN_CHECK_BONUS
+        elif self.chess.is_in_check(maximazing_player, board_matrix):
+            if self.chess.is_in_checkmate(maximazing_player, board_matrix):
+                return 10000
+            else:
+                eval += IN_CHECK_BONUS
+        
+        for position_exponent in range(64):
+            position = (1 << position_exponent)
+            piece_type, piece_color = self.chess.identify_piece(position, board_matrix)
+            
+            if piece_type:
+                temp_eval = 0
+                if piece_type == "PAWN":
+                    temp_eval += PAWN_VALUE
+                    if move_counter > ENDGAME_THRESHOLD:
+                        temp_eval += PAWN_END_POS_BONUS[position_exponent if maximazing_player else (63 - position_exponent)]
                     else:
-                        temp_eval = KING_POS_WEIGHT * KING_POS_BONUS_ENDGAME[piece.value[0]][r][c]
-                evaluation += temp_eval if piece.value[0] == player.value else - temp_eval
-                
-        if self.chess.is_in_check(board_matrix, player):
-            evaluation += IN_CHECK_BONUS
-        if self.chess.is_in_check(board_matrix, Color.WHITE if player == Color.BLACK else Color.BLACK):
-            evaluation += IN_CHECK_BONUS
-
-        return evaluation
-                
-    def minimax(self, board_matrix, en_passant_square, depth, alpha, beta, maximazingPlayer, move_counter):
-        temp_board = copy.deepcopy(board_matrix)
-        if depth == 0 or self.chess.is_checkmate(temp_board, en_passant_square, Color.BLACK if maximazingPlayer else Color.WHITE):
-            return self.evaluate(temp_board, Color.BLACK if maximazingPlayer else Color.WHITE, move_counter, en_passant_square)
+                        temp_eval += PAWN_START_POS_BONUS[position_exponent if maximazing_player else (63 - position_exponent)]
+                elif piece_type == "ROOK":
+                    temp_eval += ROOK_VALUE + ROOK_POS_BONUS[position_exponent if maximazing_player else (63 - position_exponent)]
+                elif piece_type == "KNIGHT":
+                    temp_eval += KNIGHT_VALUE + KNIGHT_POS_BONUS[position_exponent]
+                elif piece_type == "BISHOP":
+                    temp_eval += BISHOP_VALUE + BISHOP_POS_BONUS[position_exponent]
+                elif piece_type == "QUEEN":
+                    temp_eval += QUEEN_VALUE + BISHOP_POS_BONUS[position_exponent]
+                elif piece_type == "KING":
+                    if move_counter > ENDGAME_THRESHOLD:
+                        temp_eval += KING_END_POS_BONUS[position_exponent if maximazing_player else (63 - position_exponent)]
+                    else:
+                        temp_eval += KING_START_POS_BONUS[position_exponent if maximazing_player else (63 - position_exponent)]
+                eval += temp_eval if maximazing_player else -temp_eval
+            else:
+                continue
         
-        if maximazingPlayer:
-            maxEval = -10000
-            for r in range(8):
-                for c in range(8):
-                    if self.chess.is_valid_square((r, c), temp_board, Color.BLACK):
-                        possible_moves = self.chess.calculate_possible_moves((r, c), temp_board, en_passant_square, Color.BLACK)
-                        for move in possible_moves:
-                            if (move[0] == 7 and self.chess.get_piece((r, c), temp_board) == ChessPiece.PAWN_BLACK):
-                                for promotion_piece in (ChessPiece.ROOK_BLACK, ChessPiece.KNIGHT_BLACK, ChessPiece.BISHOP_BLACK, ChessPiece.QUEEN_BLACK):
-                                    temp_board, en_passant_square = self.chess.move_piece((r, c), move, temp_board, en_passant_square, Color.BLACK, promotion_piece)
-                                    eval = self.minimax(temp_board, en_passant_square, depth -1, alpha, beta, False, move_counter + 1)
-                                    maxEval = max(maxEval, eval)
-                                    alpha = max(alpha, eval)
-                                    if beta <= alpha:
-                                        break
-                                continue
-                            temp_board, en_passant_square = self.chess.move_piece((r, c), move, temp_board, en_passant_square, Color.BLACK)
-                            eval = self.minimax(temp_board, en_passant_square, depth -1, alpha, beta, False, move_counter + 1)
-                            maxEval = max(maxEval, eval)
-                            alpha = max(alpha, eval)
-                            if beta <= alpha:
-                                break
-                        
+        return eval
+    
+    def minimax(self, board_matrix, depth, alpha, beta, maximazing_player, move_counter):
+        if depth == 0:
+            return self.evaluate(board_matrix, maximazing_player, move_counter)
+        
+        if maximazing_player:
+            maxEval = -100000
+            for position_exponent in range(64):
+                from_position = (1 << position_exponent)
+                if self.chess.is_own_piece(from_position, "BLACK", board_matrix):
+                    for to_position in self.chess.calculate_possible_moves(board_matrix, from_position):
+                        temp_board = board_matrix.copy()
+                        self.chess.move_piece(from_position, to_position, temp_board)
+                        eval = self.minimax(temp_board, depth - 1, alpha, beta, False, move_counter + 1)
+                        maxEval = max(maxEval, eval)
+                        alpha = max(alpha, eval)
+                        if beta <= alpha:
+                            break
             return maxEval
         else:
-            minEval = 10000
-            for r in range(8):
-                for c in range(8):
-                    if self.chess.is_valid_square((r, c), temp_board, Color.WHITE):
-                        possible_moves = self.chess.calculate_possible_moves((r, c), temp_board, en_passant_square, Color.WHITE)
-                        for move in possible_moves:
-                            if (move[0] == 7 and self.chess.get_piece((r, c), temp_board) == ChessPiece.PAWN_WHITE):
-                                for promotion_piece in (ChessPiece.ROOK_WHITE, ChessPiece.KNIGHT_WHITE, ChessPiece.BISHOP_WHITE, ChessPiece.QUEEN_WHITE):
-                                    temp_board, en_passant_square = self.chess.move_piece((r, c), move, temp_board, en_passant_square, Color.WHITE, promotion_piece)
-                                    eval = self.minimax(temp_board, en_passant_square, depth -1, alpha, beta, True, move_counter + 1)
-                                    minEval = min(minEval, eval)
-                                    beta = min(beta, eval)
-                                    if beta <= alpha:
-                                        break
-                                continue
-                            temp_board, en_passant_square = self.chess.move_piece((r, c), move, temp_board, en_passant_square, Color.WHITE)
-                            eval = self.minimax(temp_board, en_passant_square, depth -1, alpha, beta, True, move_counter + 1)
-                            minEval = min(minEval, eval)
-                            beta = min(beta, eval)
-                            if beta <= alpha:
-                                break
+            minEval = 100000
+            for position_exponent in range(64):
+                from_position = (1 << position_exponent)
+                if self.chess.is_own_piece(from_position, "WHITE", board_matrix):
+                    for to_position in self.chess.calculate_possible_moves(board_matrix, from_position):
+                        temp_board = board_matrix.copy()
+                        self.chess.move_piece(from_position, to_position, temp_board)
+                        eval = self.minimax(temp_board, depth - 1, alpha, beta, True, move_counter + 1)
+                        minEval = min(minEval, eval)
+                        beta = min(beta, eval)
+                        if beta <= alpha:
+                            break
             return minEval
-
              
-                
+PAWN_VALUE = 1
+BISHOP_VALUE = 3
+KNIGHT_VALUE = 3
+ROOK_VALUE = 5
+QUEEN_VALUE = 7
+
+IN_CHECK_BONUS = 2
+
+OPENING_THRESHOLD = 8
+ENDGAME_THRESHOLD = 30
+
+KNIGHT_POS_BONUS = [-0.5,-0.4, -0.2, -0.1, -0.1, -0.2, -0.4, -0.5, -0.4, -0.2, -0.1, 0.1, 0.1, -0.1, -0.2, -0.4, -0.2, -0.1, 0.1, 0.3, 0.3, 0.1, -0.1, -0.2, -0.1, 0.1, 0.3, 0.5, 0.5, 0.3, 0.1, -0.1, -0.1, 0.1, 0.3, 0.5, 0.5, 0.3, 0.1, -0.1, -0.2, -0.1, 0.1, 0.3, 0.3, 0.1, -0.1, -0.2, -0.4, -0.2, -0.1, 0.1, 0.1, -0.1, -0.2, -0.4, -0.5, -0.4, -0.2, -0.1, -0.1, -0.2, -0.4, -0.5]
+BISHOP_POS_BONUS = [-0.2, -0.1, 0, 0.1, 0.1, 0, -0.1, -0.2, -0.1, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, -0.1, 0, 0.2, 0.4, 0.4, 0.4, 0.4, 0.2, 0, 0.1, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.1, 0.1, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.1, 0, 0.2, 0.4, 0.4, 0.4, 0.4, 0.2, 0, -0.1, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, -0.1, -0.2, -0.1, 0, 0.1, 0.1, 0, -0.1, -0.2]
+QUEEN_POS_BONUS = [-0.4, -0.2, 0, 0.2, 0.2, 0, -0.2, -0.4, -0.2, 0, 0.2, 0.4, 0.4, 0.2, 0, -0.2, 0, 0.2, 0.4, 0.5, 0.5, 0.4, 0.2, 0, 0.2, 0.4, 0.5, 0.6, 0.6, 0.5, 0.4, 0.2, 0.2, 0.4, 0.5, 0.6, 0.6, 0.5, 0.4, 0.2, 0, 0.2, 0.4, 0.5, 0.5, 0.4, 0.2, 0, -0.2, 0, 0.2, 0.4, 0.4, 0.2, 0, -0.2, -0.4, -0.2, 0, 0.2, 0.2, 0, -0.2, -0.4]
+PAWN_START_POS_BONUS = [0, 0, 0, 0, 0, 0, 0, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.2, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.2, 0.1, 0.1, 0.2, 0.3, 0.3, 0.2, 0.1, 0.1, 0, 0, 0, 0.2, 0.2, 0, 0, 0, 0.1, 0, -0.1, 0, 0, -0.1, 0, 0.1, 0.1, 0.2, 0.2, -0.2, -0.2, 0.2, 0.2, 0.1, 0, 0, 0, 0, 0, 0, 0, 0]
+PAWN_END_POS_BONUS = [0, 0, 0, 0, 0, 0, 0, 0, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+KING_START_POS_BONUS = [-0.5, -0.4, -0.4, -0.4, -0.4, -0.4, -0.4, -0.5, -0.4, -0.4, -0.4, -0.4, -0.4, -0.4, -0.4, -0.4, -0.2, -0.3, -0.3, -0.3, -0.3, -0.3, -0.3, -0.2, -0.1, -0.2, -0.2, -0.2, -0.2, -0.2, -0.2, -0.1, 0, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1, 0, 0, 0.2, 0, 0, 0, 0, 0.2, 0, 0.2, 0.3, 0.2, 0.2, 0.2, 0.2, 0.3, 0.2, 0.2, 0.4, 0.7, 0.4, 0.2, 0.4, 0.7, 0.2]
+KING_END_POS_BONUS = [-0.2, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.2, -0.1, 0, 0.1, 0.1, 0.1, 0.1, 0, -0.1, -0.1, -0.1, 0.3, 0.4, 0.4, 0.3, -0.1, -0.1, -0.1, -0.1, 0.4, 0.5, 0.5, 0.4, -0.1, -0.1, -0.1, -0.1, 0.2, 0.4, 0.4, 0.2, -0.1, -0.1, -0.2, -0.1, 0, 0.2, 0.2, 0, -0.1, -0.2, -0.3, -0.2, -0.1, 0, 0, -0.1, -0.2, -0.3, -0.4, -0.3, -0.2, -0.2, -0.2, -0.2, -0.3, -0.4]
+ROOK_POS_BONUS = [0, 0, 0, 0, 0, 0, 0, 0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.2, 0, 0, 0.3, 0, 0.3, 0, -0.2]
