@@ -1,9 +1,7 @@
 import pygame
 import sys
-import copy
 import math
 import functools
-import json
 from collections import Counter
 from board import Board
 
@@ -36,7 +34,7 @@ class Chess:
         return None, None
 
     def calculate_possible_moves(self, board_matrix, position):
-        hashed_move = hash(json.dumps(board_matrix) + json.dumps(position))
+        hashed_move = hash(str(board_matrix) + str(position))
         if (hashed_move) in self.possible_moves_cache:
             return self.possible_moves_cache[hashed_move]
         

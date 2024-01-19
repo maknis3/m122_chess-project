@@ -1,5 +1,6 @@
 from collections import Counter
 from chess import Chess
+import time
 
 class Engine:
     def __init__(self, chess):
@@ -8,6 +9,7 @@ class Engine:
         self.board_evaluations = {}
     
     def calculate_move(self, initial_board_matrix, move_counter):
+        timestamp = time.time()
         best_eval = -100000
         best_from_position = None
         best_to_position = None
@@ -20,13 +22,14 @@ class Engine:
                 for to_position in self.chess.calculate_possible_moves(initial_board_matrix, from_position):
                     temp_board = initial_board_matrix.copy()
                     self.chess.move_piece(from_position, to_position, temp_board)
-                    new_eval = self.minimax(temp_board, 3, -1000, 1000, False, move_counter + 1)
+                    new_eval = self.minimax(temp_board, 3, best_eval, 1000, False, move_counter + 1)
                     if new_eval > best_eval:
                         best_from_position = from_position
                         best_to_position = to_position
                         best_eval = new_eval
         
         print("number of evaluate calls: " + str(self.number_of_evaluations))
+        print(f"calculation time: {time.time() - timestamp}")
         return best_from_position, best_to_position
     
     def evaluate(self, board_matrix, maximazing_player, move_counter):
