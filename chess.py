@@ -2,6 +2,8 @@ import pygame
 import sys
 import copy
 import math
+import functools
+import json
 from collections import Counter
 from board import Board
 
@@ -10,34 +12,37 @@ class Chess:
         self.board = board
         self.hash_board_archive = []
         self.board_archive = []
+        self.possible_moves_cache = {}
     
     def is_empty_position(self, board_matrix, position):
-        all_pieces = 0
-        for piece, piece_position in board_matrix.items():
-            if piece in ("casteling_rights", "en_passant_position", "last_capture_or_pawn_move"):
-                continue
-            all_pieces |= piece_position
-        return (all_pieces & position) == 0
+        return (board_matrix["all_pieces"] & position) == 0
     
+    @functools.cache
     def square_to_position(self, square): # Convert a square (row, col) to a position (bit index)
         return 1 << (square[0] * 8 + square[1])
 
+    @functools.cache
     def position_to_square(self, position): # Convert a position (bit index) to a square (row, col)
-        row = int(math.log(position, 2) // 8)
-        col = int(math.log(position, 2) % 8)
-        return row, col
+        return int(math.log(position, 2) // 8), int(math.log(position, 2) % 8)
     
     def identify_piece(self, position, board_matrix):
+        if (board_matrix["all_pieces"] & position) == 0:
+            return None, None
         for piece, piece_position in board_matrix.items():
-            if piece in ("casteling_rights", "en_passant_position", "last_capture_or_pawn_move"):
+            if piece in ("casteling_rights", "en_passant_position", "last_capture_or_pawn_move", "all_pieces"):
                 continue
             if (piece_position & position) == position:
                 return piece.split('_')
         return None, None
 
     def calculate_possible_moves(self, board_matrix, position):
+        hashed_move = hash(json.dumps(board_matrix) + json.dumps(position))
+        if (hashed_move) in self.possible_moves_cache:
+            return self.possible_moves_cache[hashed_move]
+        
         piece_type, piece_color = self.identify_piece(position, board_matrix)
         moves = []
+
         if piece_type:
             if piece_type == "PAWN":
                 moves += self.calculate_pawn_moves(piece_color, position, board_matrix)
@@ -51,18 +56,21 @@ class Chess:
                 moves += self.calculate_queen_moves(piece_color, position, board_matrix)
             elif piece_type == "KING":
                 moves += self.calculate_king_moves(piece_color, position, board_matrix)
-            
-        return list(filter(lambda move: not self.move_will_cause_check(piece_color, board_matrix, position, move), moves))
+        
+        filtered_moves = list(filter(lambda move: not self.move_will_cause_check(piece_color, board_matrix, position, move), moves))
+        self.possible_moves_cache[hashed_move] = filtered_moves
 
-    
+        return filtered_moves
+
     def calculate_pawn_moves(self, piece_color, position, board_matrix, only_impact = False):
+        
         moves = []
         direction = False if piece_color=="WHITE" else True
         
         if only_impact:
             for delta_col in [9, 7]:
                 capture_position = (position << delta_col) if direction else (position >> delta_col)
-                if (int(math.log(position,2))%8 - int(math.log(capture_position,2))%8) in (-1, 1):
+                if abs(int(math.log(position,2))%8 - int(math.log(capture_position,2))%8) ==1:
                     moves.append(capture_position)
             return moves
         
@@ -193,7 +201,7 @@ class Chess:
 
     def is_own_piece(self, position, piece_color, board_matrix):
         _, other_piece_color = self.identify_piece(position, board_matrix)
-        return other_piece_color and other_piece_color == piece_color
+        return other_piece_color == piece_color
     
     def move_piece(self, start_position, end_position, board_matrix, promotion_piece_type = "QUEEN", move_counter = None):
         moved_piece_type, moved_piece_color = self.identify_piece(start_position, board_matrix)
@@ -206,9 +214,13 @@ class Chess:
         if moved_piece_type in ("KING", "ROOK"): # Casteling logic
             if (start_position in (72057594037927936, 1152921504606846976, 1, 16)) and (end_position in (72057594037927936, 1152921504606846976, 1, 16)) and self.can_castle_queenside(moved_piece_color, board_matrix):
                 self.perform_castle_queenside(moved_piece_color, board_matrix)
+                self.sum_pieces(board_matrix)
+                board_matrix["en_passant_position"] = 0
                 return
             elif (start_position in (1152921504606846976, 9223372036854775808, 16, 128)) and (end_position in (1152921504606846976, 9223372036854775808, 16, 128)) and self.can_castle_kingside(moved_piece_color, board_matrix):
                 self.perform_castle_kingside(moved_piece_color, board_matrix)
+                self.sum_pieces(board_matrix)
+                board_matrix["en_passant_position"] = 0
                 return
             self.update_casteling_rights(start_position, moved_piece_color, board_matrix)
         
@@ -227,13 +239,15 @@ class Chess:
                     board_matrix["en_passant_position"] = (start_position << 8)
             if (end_position | -72057594037927681) == -72057594037927681: # Promote pawn on last rank
                 self.pawn_promotion(start_position, end_position, board_matrix, moved_piece_color, promotion_piece_type)
+                board_matrix["en_passant_position"] = 0
                 return
         else:
             board_matrix["en_passant_position"] = None
                 
         board_matrix[moved_piece_type + "_" + moved_piece_color] &= ~(start_position) # Clear the start position
         board_matrix[moved_piece_type + "_" + moved_piece_color] |= (end_position) # Set the end position
-        
+
+        self.sum_pieces(board_matrix)
         
     def is_position_attacked_by(self, color, position, board_matrix):
         for position_factor in range(64):
@@ -396,3 +410,12 @@ class Chess:
     
     def get_archived_board(self, move):
         return self.board_archive[move]
+    
+    def sum_pieces(self, board_matrix):
+        all_pieces = 0
+        for piece, piece_position in board_matrix.items():
+            if piece in ("casteling_rights", "en_passant_position", "last_capture_or_pawn_move", "all_pieces"):
+                continue
+            else:
+                all_pieces |= piece_position
+        board_matrix["all_pieces"] = all_pieces

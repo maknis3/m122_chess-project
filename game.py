@@ -21,7 +21,8 @@ class ChessGame:
             "KING_WHITE": 0b0001000000000000000000000000000000000000000000000000000000000000,
             "casteling_rights": 0b1111, #white-queenside, white-kingside, black-queenside, black-kingside
             "en_passant_position": 0,
-            "last_capture_or_pawn_move": 0
+            "last_capture_or_pawn_move": 0, 
+            "all_pieces": -281474976645121
         }
         self.white_turn = True
         self.check_position = None
@@ -58,8 +59,6 @@ class ChessGame:
         pygame.quit()
         sys.exit()
         
-        
-        
     def chess_interaction(self, x, y, possible_moves, origin_position):
         col = x // self.board.square_size
         row = y // self.board.square_size
@@ -77,8 +76,8 @@ class ChessGame:
             engine_from_position, engine_to_position = self.engine.calculate_move(self.board_matrix, self.move_counter)
             self.chess.move_piece(engine_from_position, engine_to_position, self.board_matrix, "QUEEN", self.move_counter)
             self.end_turn()
-            pygame.quit()
-            sys.exit
+            #pygame.quit()
+            #sys.exit
             
         elif self.chess.is_own_piece(selected_position, "WHITE" if self.white_turn else "BLACK", self.board_matrix):
             possible_moves = self.chess.calculate_possible_moves(self.board_matrix, selected_position)
@@ -92,6 +91,7 @@ class ChessGame:
         self.check_position = None
         self.chess.archive_board(self.board_matrix)
         if self.chess.check_threefold_repetition() or self.chess.check_fifty_move_rule(self.move_counter, self.board_matrix):
+            print("is threefold or fifty")
             self.proclaim_draw()
             return
         
@@ -107,6 +107,7 @@ class ChessGame:
                 own_color = "WHITE" if self.white_turn else "BLACK"
                 self.check_position = self.board_matrix["KING_" + own_color]
         elif self.chess.is_stalemate(self.white_turn, self.board_matrix):
+            print("is stalemate")
             self.proclaim_draw()
             
     def proclaim_draw(self):
@@ -116,7 +117,6 @@ class ChessGame:
         x, y = clicked_coordinates
         buttons = self.board.get_menu_buttons()
         displayed_move = self.move_counter
-        archived_check_position = None
         running = True
 
         for button_type, button in buttons.items():
