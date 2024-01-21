@@ -1,5 +1,5 @@
 from collections import Counter
-from chess import Chess
+from mychess import Chess
 import time
 
 class Engine:

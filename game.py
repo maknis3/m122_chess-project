@@ -1,7 +1,7 @@
 import pygame
 import sys
 from board import Board
-from chess import Chess
+from mychess import Chess
 from engine import Engine
 
 class ChessGame:
