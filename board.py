@@ -114,9 +114,7 @@ class Board:
             pygame.draw.circle(self.screen, BLUE, (center_x, center_y), radius, 5)
         
     def position_to_square(self, position): # Convert a position (bit index) to a square (row, col)
-        row = int(math.log(position, 2) // 8)
-        col = int(math.log(position, 2) % 8)
-        return row, col
+        return int(math.log(position, 2) // 8), int(math.log(position, 2) % 8)
 
     def load_menu(self, white_turn, move_counter, game_finished):
         pygame.draw.rect(self.screen, DARK_GRAY, (CHESS_WIDTH, 0, MENU_WIDTH, CHESS_HEIGHT))

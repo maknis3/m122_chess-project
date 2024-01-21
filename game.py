@@ -76,8 +76,6 @@ class ChessGame:
             engine_from_position, engine_to_position = self.engine.calculate_move(self.board_matrix, self.move_counter)
             self.chess.move_piece(engine_from_position, engine_to_position, self.board_matrix, "QUEEN", self.move_counter)
             self.end_turn()
-            #pygame.quit()
-            #sys.exit
             
         elif self.chess.is_own_piece(selected_position, "WHITE" if self.white_turn else "BLACK", self.board_matrix):
             possible_moves = self.chess.calculate_possible_moves(self.board_matrix, selected_position)

@@ -205,6 +205,8 @@ class Chess:
         moved_piece_type, moved_piece_color = self.identify_piece(start_position, board_matrix)
         target_piece_type, target_piece_color = self.identify_piece(end_position, board_matrix)
         
+        is_interesting_move = target_piece_type in ("ROOK", "KNIGHT", "BISHOP", "QUEEN", "PAWN")
+        
         if not target_piece_color in (None, moved_piece_color): # Clear the captured piece
             board_matrix[target_piece_type + "_" + target_piece_color] &= ~(end_position) 
             board_matrix["last_capture_or_pawn_move"] = move_counter
@@ -214,12 +216,12 @@ class Chess:
                 self.perform_castle_queenside(moved_piece_color, board_matrix)
                 self.sum_pieces(board_matrix)
                 board_matrix["en_passant_position"] = 0
-                return
+                return False
             elif (start_position in (1152921504606846976, 9223372036854775808, 16, 128)) and (end_position in (1152921504606846976, 9223372036854775808, 16, 128)) and self.can_castle_kingside(moved_piece_color, board_matrix):
                 self.perform_castle_kingside(moved_piece_color, board_matrix)
                 self.sum_pieces(board_matrix)
                 board_matrix["en_passant_position"] = 0
-                return
+                return False
             self.update_casteling_rights(start_position, moved_piece_color, board_matrix)
         
         if moved_piece_type == "PAWN":
@@ -238,7 +240,7 @@ class Chess:
             if (end_position | -72057594037927681) == -72057594037927681: # Promote pawn on last rank
                 self.pawn_promotion(start_position, end_position, board_matrix, moved_piece_color, promotion_piece_type)
                 board_matrix["en_passant_position"] = 0
-                return
+                return False
         else:
             board_matrix["en_passant_position"] = None
                 
@@ -246,6 +248,8 @@ class Chess:
         board_matrix[moved_piece_type + "_" + moved_piece_color] |= (end_position) # Set the end position
 
         self.sum_pieces(board_matrix)
+        
+        return is_interesting_move
         
     def is_position_attacked_by(self, color, position, board_matrix):
         for position_factor in range(64):

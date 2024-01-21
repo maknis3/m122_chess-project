@@ -22,7 +22,7 @@ class Engine:
                 for to_position in self.chess.calculate_possible_moves(initial_board_matrix, from_position):
                     temp_board = initial_board_matrix.copy()
                     self.chess.move_piece(from_position, to_position, temp_board)
-                    new_eval = self.minimax(temp_board, 3, best_eval, 1000, False, move_counter + 1)
+                    new_eval = self.minimax(temp_board, 2, best_eval, 1000, False, move_counter + 1)
                     if new_eval > best_eval:
                         best_from_position = from_position
                         best_to_position = to_position
@@ -94,7 +94,8 @@ class Engine:
                 if self.chess.is_own_piece(from_position, "BLACK", board_matrix):
                     for to_position in self.chess.calculate_possible_moves(board_matrix, from_position):
                         temp_board = board_matrix.copy()
-                        self.chess.move_piece(from_position, to_position, temp_board)
+                        if self.chess.move_piece(from_position, to_position, temp_board) and depth == 1:
+                            depth += 1
                         eval = self.minimax(temp_board, depth - 1, alpha, beta, False, move_counter + 1)
                         maxEval = max(maxEval, eval)
                         alpha = max(alpha, eval)
