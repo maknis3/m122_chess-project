@@ -1,20 +1,47 @@
 from collections import Counter
 from mychess import Chess
 import time
+import os
+import json
+import random
 
 class Engine:
     def __init__(self, chess):
         self.chess = chess
         self.number_of_evaluations = 0
         self.board_evaluations = {}
+        self.opening_moves_prep = {}
+        self.load_openings()
     
     def calculate_move(self, initial_board_matrix, move_counter):
         timestamp = time.time()
+        
+        if move_counter <= OPENING_THRESHOLD:
+            key = ""
+            for piece_type, piece_position in initial_board_matrix.items():
+                if piece_type in ("en_passant_position", "last_capture_or_pawn_move"):
+                    continue
+                else:
+                    key += str(piece_position)
+            color = "BLACK"
+            
+            if key in self.opening_moves_prep[color]:
+                from_position, to_position = random.choice(self.opening_moves_prep[color][key])
+                print("Move found in opening preparation")
+                print(f"Search time: {time.time() - timestamp}")
+                return from_position, to_position
+            else:
+                print("No suitable move found in opening prep for key: " + key)
+        
         best_eval = -100000
         best_from_position = None
         best_to_position = None
         self.number_of_evaluations = 0
         self.board_evaluations = {}
+        depth = 2
+        
+        if move_counter > ENDGAME_THRESHOLD:
+            depth += int(move_counter/ENDGAME_THRESHOLD)
         
         for position_exponent in range(64):
             from_position = (1 << position_exponent)
@@ -22,7 +49,7 @@ class Engine:
                 for to_position in self.chess.calculate_possible_moves(initial_board_matrix, from_position):
                     temp_board = initial_board_matrix.copy()
                     self.chess.move_piece(from_position, to_position, temp_board)
-                    new_eval = self.minimax(temp_board, 2, best_eval, 1000, False, move_counter + 1)
+                    new_eval = self.minimax(temp_board, depth, best_eval, 1000, False, move_counter + 1)
                     if new_eval > best_eval:
                         best_from_position = from_position
                         best_to_position = to_position
@@ -117,6 +144,27 @@ class Engine:
                             break
             return minEval
              
+    def load_openings(self):
+        
+        filepath = os.getcwd() + "/" + OPENING_MOVES_JSON_RELATIVE_PATH
+        
+        try:
+            with open(filepath, 'r') as file:
+                self.opening_moves_prep = json.load(file)
+            print("Opening moves loaded successfully.")
+        except FileNotFoundError:
+            print(f"File not found: {filepath}")
+        except json.JSONDecodeError:
+            print(f"Error decoding JSON from file: {filepath}")
+        except Exception as e:
+            print(f"An error occurred while loading the file: {e}")
+
+
+
+# Engine config:
+
+OPENING_MOVES_JSON_RELATIVE_PATH = "move_archive/openings.json"
+
 PAWN_VALUE = 1
 BISHOP_VALUE = 3
 KNIGHT_VALUE = 3
@@ -125,8 +173,8 @@ QUEEN_VALUE = 7
 
 IN_CHECK_BONUS = 2
 
-OPENING_THRESHOLD = 8
-ENDGAME_THRESHOLD = 30
+OPENING_THRESHOLD = 10
+ENDGAME_THRESHOLD = 50
 
 KNIGHT_POS_BONUS = [-0.5,-0.4, -0.2, -0.1, -0.1, -0.2, -0.4, -0.5, -0.4, -0.2, -0.1, 0.1, 0.1, -0.1, -0.2, -0.4, -0.2, -0.1, 0.1, 0.3, 0.3, 0.1, -0.1, -0.2, -0.1, 0.1, 0.3, 0.5, 0.5, 0.3, 0.1, -0.1, -0.1, 0.1, 0.3, 0.5, 0.5, 0.3, 0.1, -0.1, -0.2, -0.1, 0.1, 0.3, 0.3, 0.1, -0.1, -0.2, -0.4, -0.2, -0.1, 0.1, 0.1, -0.1, -0.2, -0.4, -0.5, -0.4, -0.2, -0.1, -0.1, -0.2, -0.4, -0.5]
 BISHOP_POS_BONUS = [-0.2, -0.1, 0, 0.1, 0.1, 0, -0.1, -0.2, -0.1, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, -0.1, 0, 0.2, 0.4, 0.4, 0.4, 0.4, 0.2, 0, 0.1, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.1, 0.1, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.1, 0, 0.2, 0.4, 0.4, 0.4, 0.4, 0.2, 0, -0.1, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, -0.1, -0.2, -0.1, 0, 0.1, 0.1, 0, -0.1, -0.2]

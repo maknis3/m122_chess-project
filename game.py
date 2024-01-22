@@ -90,7 +90,6 @@ class ChessGame:
         self.chess.archive_board(self.board_matrix)
         if self.chess.check_threefold_repetition() or self.chess.check_fifty_move_rule(self.move_counter, self.board_matrix):
             print("is threefold or fifty")
-            self.proclaim_draw()
             return
         
         self.move_counter += 1
@@ -105,7 +104,6 @@ class ChessGame:
                 own_color = "WHITE" if self.white_turn else "BLACK"
                 self.check_position = self.board_matrix["KING_" + own_color]
         elif self.chess.is_stalemate(self.white_turn, self.board_matrix):
-            print("is stalemate")
             self.proclaim_draw()
             
     def proclaim_draw(self):

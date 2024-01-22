@@ -75,7 +75,14 @@ def process_games(games_list):
         for move_num in range(min(10, len(game))):
             try:
                 move = game[move_num]
-                board_hash = hash(str(board_matrix))
+                key = ""
+                for piece_type, piece_position in board_matrix.items():
+                    if piece_type in ("en_passant_position", "last_capture_or_pawn_move"):
+                        continue
+                    else:
+                        key += str(piece_position)
+                #print(f"looking at move: {move} on board_matrix: {board_matrix} with the key: {key}")
+                        
                 from_position, to_position = parse_move_to_bit(move, chess, board_matrix, white_turn)
 
                 if from_position is None or to_position is None:
@@ -87,21 +94,21 @@ def process_games(games_list):
                     chess.move_piece(from_position, to_position, board_matrix)
                 else: 
                     print(f"Invalid move detected! Tried {move} on board = {board_matrix}")
+                    break
 
                 number_of_processed_moves += 1
                 
                 if white_turn:
-                    if board_hash not in opening_moves_white.keys():
-                        opening_moves_white[board_hash] = [(from_position, to_position)]
-                    elif (from_position, to_position) not in opening_moves_white[board_hash]:
-                        opening_moves_white[board_hash].append((from_position, to_position))
+                    if key not in opening_moves_white:
+                        opening_moves_white[key] = [(from_position, to_position)]
+                    elif (from_position, to_position) not in opening_moves_white[key]:
+                        opening_moves_white[key].append((from_position, to_position))
                     white_turn = False
                 elif not white_turn:
-                    board_hash = hash(str(board_matrix))
-                    if board_hash not in opening_moves_black.keys():
-                        opening_moves_black[board_hash] = [(from_position, to_position)]
-                    elif (from_position, to_position) not in opening_moves_black[board_hash]:
-                        opening_moves_black[board_hash].append((from_position, to_position))
+                    if key not in opening_moves_black:
+                        opening_moves_black[key] = [(from_position, to_position)]
+                    elif (from_position, to_position) not in opening_moves_black[key]:
+                        opening_moves_black[key].append((from_position, to_position))
                     white_turn = True
         
                 
@@ -231,3 +238,24 @@ if __name__ == "__main__":
     print(f"Finished move conversion for {number_of_processed_moves} moves")
     print(f"Time spent: {time.time() - start_time}")
     print(f"Games skipped or partially skipped: {number_of_skipped_games}")
+    
+    
+    
+"""
+data = {"games": [["e4", "c6", "Nf3", "e5"]]}
+
+print(data)
+
+try:
+    opening_moves_black, opening_moves_white, number_of_skipped_games, number_of_processed_moves = process_games(data['games'])
+except Exception as e:
+    print(f"Error processing games: {e}")
+new_data = {"BLACK": opening_moves_black, "WHITE": opening_moves_white}
+try:
+    output_file_name = pgn_file_path.stem + '.json'
+    output_file_path = json_file_dir / output_file_name
+    with open(output_file_path, 'w', encoding='utf-8') as json_file:
+        json.dump(new_data, json_file, indent=4)
+except Exception as e:
+    print(f"Error writing to JSON file: {e}")
+"""
