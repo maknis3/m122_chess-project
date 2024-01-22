@@ -6,12 +6,14 @@ import json
 import random
 
 class Engine:
-    def __init__(self, chess):
+    def __init__(self, chess, player_color):
         self.chess = chess
         self.number_of_evaluations = 0
         self.board_evaluations = {}
         self.opening_moves_prep = {}
         self.load_openings()
+        self.player_color = player_color
+        self.engine_color = "WHITE" if player_color == "BLACK" else "BLACK"
     
     def calculate_move(self, initial_board_matrix, move_counter):
         timestamp = time.time()
@@ -23,10 +25,9 @@ class Engine:
                     continue
                 else:
                     key += str(piece_position)
-            color = "BLACK"
             
-            if key in self.opening_moves_prep[color]:
-                from_position, to_position = random.choice(self.opening_moves_prep[color][key])
+            if key in self.opening_moves_prep[self.engine_color]:
+                from_position, to_position = random.choice(self.opening_moves_prep[self.engine_color][key])
                 print("Move found in opening preparation")
                 print(f"Search time: {time.time() - timestamp}")
                 return from_position, to_position
@@ -45,11 +46,11 @@ class Engine:
         
         for position_exponent in range(64):
             from_position = (1 << position_exponent)
-            if self.chess.is_own_piece(from_position, "BLACK", initial_board_matrix):
+            if self.chess.is_own_piece(from_position, self.engine_color, initial_board_matrix):
                 for to_position in self.chess.calculate_possible_moves(initial_board_matrix, from_position):
                     temp_board = initial_board_matrix.copy()
                     self.chess.move_piece(from_position, to_position, temp_board)
-                    new_eval = self.minimax(temp_board, depth, best_eval, 1000, False, move_counter + 1)
+                    new_eval = self.minimax(temp_board, depth, best_eval, 100000, False, move_counter + 1)
                     if new_eval > best_eval:
                         best_from_position = from_position
                         best_to_position = to_position
@@ -66,7 +67,6 @@ class Engine:
         
         eval = 0
         self.number_of_evaluations += 1
-        #pov_color = "BLACK" if maximazing_player else "WHITE"
         
         if self.chess.is_in_check(not maximazing_player, board_matrix):
             if self.chess.is_in_checkmate(not maximazing_player, board_matrix):
@@ -105,8 +105,7 @@ class Engine:
                     else:
                         temp_eval += KING_START_POS_BONUS[position_exponent if maximazing_player else (63 - position_exponent)]
                 eval += temp_eval if maximazing_player else -temp_eval
-            else:
-                continue
+
         self.board_evaluations[board_matrix_hashed] = eval
         return eval
     
@@ -118,7 +117,7 @@ class Engine:
             maxEval = -100000
             for position_exponent in range(64):
                 from_position = (1 << position_exponent)
-                if self.chess.is_own_piece(from_position, "BLACK", board_matrix):
+                if self.chess.is_own_piece(from_position, self.engine_color, board_matrix):
                     for to_position in self.chess.calculate_possible_moves(board_matrix, from_position):
                         temp_board = board_matrix.copy()
                         if self.chess.move_piece(from_position, to_position, temp_board) and depth == 1:
@@ -133,7 +132,7 @@ class Engine:
             minEval = 100000
             for position_exponent in range(64):
                 from_position = (1 << position_exponent)
-                if self.chess.is_own_piece(from_position, "WHITE", board_matrix):
+                if self.chess.is_own_piece(from_position, self.player_color, board_matrix):
                     for to_position in self.chess.calculate_possible_moves(board_matrix, from_position):
                         temp_board = board_matrix.copy()
                         self.chess.move_piece(from_position, to_position, temp_board)

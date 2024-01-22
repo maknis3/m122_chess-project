@@ -30,16 +30,20 @@ class ChessGame:
         self.move_counter = 0
         self.board = Board()
         pygame.init()
-        self.board.update_board(self.board_matrix, None, [], None, [], None, 0)
+        self.player_color = self.board.color_selection()
         self.chess = Chess(self.board)
-        self.engine = Engine(self.chess)
+        self.engine = Engine(self.chess, self.player_color)
 
     def start_game(self):
+        self.board.update_board(self.board_matrix, None, [], None, [], None, 0)
         running = True
         selected_position = None
         origin_position = None
         possible_moves = []
         self.chess.archive_board(self.board_matrix)
+        
+        if self.player_color == "BLACK":
+            self.engine_turn()
 
         while running:
             for event in pygame.event.get():
@@ -70,20 +74,23 @@ class ChessGame:
             possible_moves = []
             selected_position = None
             self.end_turn()
+            if self.winner_positions == []:
+                self.engine_turn()
             
-            self.board.update_board(self.board_matrix, selected_position, possible_moves, self.check_position, self.winner_positions, self.white_turn, self.move_counter)
-            pygame.display.flip()
-            engine_from_position, engine_to_position = self.engine.calculate_move(self.board_matrix, self.move_counter)
-            self.chess.move_piece(engine_from_position, engine_to_position, self.board_matrix, "QUEEN", self.move_counter)
-            self.end_turn()
-            
-        elif self.chess.is_own_piece(selected_position, "WHITE" if self.white_turn else "BLACK", self.board_matrix):
+        elif self.chess.is_own_piece(selected_position, self.player_color, self.board_matrix):
             possible_moves = self.chess.calculate_possible_moves(self.board_matrix, selected_position)
             origin_position = selected_position
         else:
             possible_moves = []
         
         return selected_position, possible_moves, origin_position
+    
+    def engine_turn(self):
+        self.board.update_board(self.board_matrix, None, [], self.check_position, self.winner_positions, self.white_turn, self.move_counter)
+        pygame.display.flip()
+        engine_from_position, engine_to_position = self.engine.calculate_move(self.board_matrix, self.move_counter)
+        self.chess.move_piece(engine_from_position, engine_to_position, self.board_matrix, "QUEEN", self.move_counter)
+        self.end_turn()
         
     def end_turn(self):
         self.check_position = None

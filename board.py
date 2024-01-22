@@ -39,6 +39,10 @@ class Board:
             "right": pygame.image.load("images/right.png"),
             "far_right": pygame.image.load("images/far_right.png")
         }
+        self.color_selection_options = {
+            "WHITE": pygame.image.load("images/white_selection.png"),
+            "BLACK": pygame.image.load("images/black_selection.png")
+        }
         self.menu_buttons = {}
 
     def update_board(self, chess_pieces, selected_square, possible_moves, check_position, winner_positions, white_turn, move_counter):
@@ -200,3 +204,53 @@ class Board:
             pygame.display.flip()
 
         return selected_piece_type
+
+    def color_selection(self):
+        selected_color = None
+        
+        button_type = ["WHITE", "BLACK"]
+        button_width, button_height = 200, 200
+        button_gap = (CHESS_HEIGHT / 2) - button_height
+        start_x = (CHESS_WIDTH + MENU_WIDTH - button_width) / 2
+        start_y = ((CHESS_HEIGHT / 2) - button_height) / 2
+
+        buttons = {}
+        running = True
+        
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    for color, rect in buttons.items():
+                        if rect.collidepoint(event.pos):
+                            selected_color = color
+                            running = False
+
+            pygame.draw.rect(self.screen, GRAY, (0, 0, MENU_WIDTH + CHESS_WIDTH, CHESS_HEIGHT/2))
+            pygame.draw.rect(self.screen, WHITE, (0, CHESS_HEIGHT/2, MENU_WIDTH + CHESS_WIDTH, CHESS_HEIGHT))
+
+            text_one_x, text_one_y = (CHESS_WIDTH / 2) - 100, (CHESS_HEIGHT / 2) - 50
+            text_two_x, text_two_y = (CHESS_WIDTH / 2) - 100, (CHESS_HEIGHT / 2) + 20
+            font_size = 42
+            font = pygame.font.SysFont(None, font_size)
+            text_surface = font.render("welcome to mychess", True, BLACK, None)
+            self.screen.blit(text_surface, (text_one_x, text_one_y))
+            text_surface = font.render("select your color", True, BLACK, None)
+            self.screen.blit(text_surface, (text_two_x, text_two_y))
+            
+            y = start_y
+            for color in button_type:
+                rect = pygame.Rect(start_x, y, button_width, button_height)
+                buttons[color] = rect
+                button_color = WHITE if color == "WHITE" else GRAY
+                pygame.draw.rect(self.screen, button_color, rect)
+                self.screen.blit(self.color_selection_options[color], (start_x + 20, y + 20))
+
+                y += button_height + button_gap
+
+            pygame.display.flip()
+
+        return selected_color
