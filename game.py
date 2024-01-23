@@ -31,13 +31,14 @@ class ChessGame:
         self.board = Board()
         pygame.init()
         self.player_color = self.board.color_selection()
+        self.board_flip = True if self.player_color == "BLACK" else False
         self.chess = Chess(self.board)
         self.engine = Engine(self.chess, self.player_color)
 
     def start_game(self):
         self.board.update_board(self.board_matrix, None, [], None, [], None, 0)
         running = True
-        selected_position = None
+        displayed_selected_position = None
         origin_position = None
         possible_moves = []
         self.chess.archive_board(self.board_matrix)
@@ -53,11 +54,11 @@ class ChessGame:
                     x, y = event.pos
                     
                     if (x < 800) and self.winner_positions == []:
-                        selected_position, possible_moves, origin_position = self.chess_interaction(x, y, possible_moves, origin_position)
+                        displayed_selected_position, possible_moves, origin_position = self.chess_interaction(x, y, possible_moves, origin_position)
                     else: 
                         self.menu_iteraction((x, y))
 
-            self.board.update_board(self.board_matrix, selected_position, possible_moves, self.check_position, self.winner_positions, self.white_turn, self.move_counter)
+            self.board.update_board(self.board_matrix, displayed_selected_position, possible_moves, self.check_position, self.winner_positions, self.white_turn, self.move_counter)
             pygame.display.flip()
 
         pygame.quit()
@@ -67,23 +68,28 @@ class ChessGame:
         col = x // self.board.square_size
         row = y // self.board.square_size
         
-        selected_position = self.chess.square_to_position((row, col))
+        displayed_selected_position = self.chess.square_to_position((row, col))
+        if self.board_flip:
+            calculation_selected_position = self.reverse_bits(displayed_selected_position)
+        else:
+            calculation_selected_position = displayed_selected_position
         
-        if selected_position in possible_moves:
-            self.chess.move_piece(origin_position, selected_position, self.board_matrix, None, self.move_counter)
+        if calculation_selected_position in possible_moves:
+            self.chess.move_piece(origin_position, calculation_selected_position, self.board_matrix, None, self.move_counter)
             possible_moves = []
-            selected_position = None
+            calculation_selected_position = None
+            displayed_selected_position = None
             self.end_turn()
             if self.winner_positions == []:
                 self.engine_turn()
             
-        elif self.chess.is_own_piece(selected_position, self.player_color, self.board_matrix):
-            possible_moves = self.chess.calculate_possible_moves(self.board_matrix, selected_position)
-            origin_position = selected_position
+        elif self.chess.is_own_piece(calculation_selected_position, self.player_color, self.board_matrix):
+            possible_moves = self.chess.calculate_possible_moves(self.board_matrix, calculation_selected_position)
+            origin_position = calculation_selected_position
         else:
             possible_moves = []
         
-        return selected_position, possible_moves, origin_position
+        return displayed_selected_position, possible_moves, origin_position
     
     def engine_turn(self):
         self.board.update_board(self.board_matrix, None, [], self.check_position, self.winner_positions, self.white_turn, self.move_counter)
@@ -161,3 +167,11 @@ class ChessGame:
             archived_check_position = archived_board["KING_BLACK"]
         self.board.update_board(archived_board, None, [], archived_check_position, [], None, displayed_move)
         pygame.display.flip()
+        
+    def reverse_bits(self, n):
+        result = 0
+        for i in range(64):
+            result <<= 1
+            result |= n & 1
+            n >>= 1
+        return result

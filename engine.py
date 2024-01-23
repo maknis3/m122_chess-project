@@ -29,7 +29,7 @@ class Engine:
             if key in self.opening_moves_prep[self.engine_color]:
                 from_position, to_position = random.choice(self.opening_moves_prep[self.engine_color][key])
                 print("Move found in opening preparation")
-                print(f"Search time: {time.time() - timestamp}")
+                print(f"Search time: {(time.time() - timestamp):.2f}s")
                 return from_position, to_position
             else:
                 print("No suitable move found in opening prep for key: " + key)
@@ -50,17 +50,17 @@ class Engine:
                 for to_position in self.chess.calculate_possible_moves(initial_board_matrix, from_position):
                     temp_board = initial_board_matrix.copy()
                     self.chess.move_piece(from_position, to_position, temp_board)
-                    new_eval = self.minimax(temp_board, depth, best_eval, 100000, False, move_counter + 1)
+                    new_eval = self.minimax(temp_board, depth, best_eval, 100000, False, move_counter + 1, self.engine_color, self.player_color)
                     if new_eval > best_eval:
                         best_from_position = from_position
                         best_to_position = to_position
                         best_eval = new_eval
         
         print("number of evaluate calls: " + str(self.number_of_evaluations))
-        print(f"calculation time: {time.time() - timestamp}")
+        print(f"calculation time: {(time.time() - timestamp):.2f}s")
         return best_from_position, best_to_position
     
-    def evaluate(self, board_matrix, maximazing_player, move_counter):
+    def evaluate(self, board_matrix, maximazing_player, move_counter, engine_color):
         board_matrix_hashed = hash(str(board_matrix))
         if board_matrix_hashed in self.board_evaluations:
             return self.board_evaluations[board_matrix_hashed]
@@ -68,13 +68,13 @@ class Engine:
         eval = 0
         self.number_of_evaluations += 1
         
-        if self.chess.is_in_check(not maximazing_player, board_matrix):
-            if self.chess.is_in_checkmate(not maximazing_player, board_matrix):
+        if self.chess.is_in_check(engine_color == "WHITE", board_matrix):
+            if self.chess.is_in_checkmate(engine_color == "WHITE", board_matrix):
                 return -10000
             else:
                 eval -= IN_CHECK_BONUS
-        elif self.chess.is_in_check(maximazing_player, board_matrix):
-            if self.chess.is_in_checkmate(maximazing_player, board_matrix):
+        elif self.chess.is_in_check(engine_color == "BLACK", board_matrix):
+            if self.chess.is_in_checkmate(engine_color == "BLACK", board_matrix):
                 return 10000
             else:
                 eval += IN_CHECK_BONUS
@@ -109,20 +109,20 @@ class Engine:
         self.board_evaluations[board_matrix_hashed] = eval
         return eval
     
-    def minimax(self, board_matrix, depth, alpha, beta, maximazing_player, move_counter):
+    def minimax(self, board_matrix, depth, alpha, beta, maximazing_player, move_counter, engine_color, player_color):
         if depth == 0:
-            return self.evaluate(board_matrix, maximazing_player, move_counter)
+            return self.evaluate(board_matrix, maximazing_player, move_counter, engine_color)
         
         if maximazing_player:
             maxEval = -100000
             for position_exponent in range(64):
                 from_position = (1 << position_exponent)
-                if self.chess.is_own_piece(from_position, self.engine_color, board_matrix):
+                if self.chess.is_own_piece(from_position, engine_color, board_matrix):
                     for to_position in self.chess.calculate_possible_moves(board_matrix, from_position):
                         temp_board = board_matrix.copy()
                         if self.chess.move_piece(from_position, to_position, temp_board) and depth == 1:
                             depth += 1
-                        eval = self.minimax(temp_board, depth - 1, alpha, beta, False, move_counter + 1)
+                        eval = self.minimax(temp_board, depth - 1, alpha, beta, False, move_counter + 1, engine_color, player_color)
                         maxEval = max(maxEval, eval)
                         alpha = max(alpha, eval)
                         if beta <= alpha:
@@ -132,11 +132,11 @@ class Engine:
             minEval = 100000
             for position_exponent in range(64):
                 from_position = (1 << position_exponent)
-                if self.chess.is_own_piece(from_position, self.player_color, board_matrix):
+                if self.chess.is_own_piece(from_position, player_color, board_matrix):
                     for to_position in self.chess.calculate_possible_moves(board_matrix, from_position):
                         temp_board = board_matrix.copy()
                         self.chess.move_piece(from_position, to_position, temp_board)
-                        eval = self.minimax(temp_board, depth - 1, alpha, beta, True, move_counter + 1)
+                        eval = self.minimax(temp_board, depth - 1, alpha, beta, True, move_counter + 1, engine_color, player_color)
                         minEval = min(minEval, eval)
                         beta = min(beta, eval)
                         if beta <= alpha:
@@ -170,10 +170,10 @@ KNIGHT_VALUE = 3
 ROOK_VALUE = 5
 QUEEN_VALUE = 7
 
-IN_CHECK_BONUS = 2
+IN_CHECK_BONUS = 1.5
 
 OPENING_THRESHOLD = 10
-ENDGAME_THRESHOLD = 50
+ENDGAME_THRESHOLD = 60
 
 KNIGHT_POS_BONUS = [-0.5,-0.4, -0.2, -0.1, -0.1, -0.2, -0.4, -0.5, -0.4, -0.2, -0.1, 0.1, 0.1, -0.1, -0.2, -0.4, -0.2, -0.1, 0.1, 0.3, 0.3, 0.1, -0.1, -0.2, -0.1, 0.1, 0.3, 0.5, 0.5, 0.3, 0.1, -0.1, -0.1, 0.1, 0.3, 0.5, 0.5, 0.3, 0.1, -0.1, -0.2, -0.1, 0.1, 0.3, 0.3, 0.1, -0.1, -0.2, -0.4, -0.2, -0.1, 0.1, 0.1, -0.1, -0.2, -0.4, -0.5, -0.4, -0.2, -0.1, -0.1, -0.2, -0.4, -0.5]
 BISHOP_POS_BONUS = [-0.2, -0.1, 0, 0.1, 0.1, 0, -0.1, -0.2, -0.1, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, -0.1, 0, 0.2, 0.4, 0.4, 0.4, 0.4, 0.2, 0, 0.1, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.1, 0.1, 0.3, 0.4, 0.5, 0.5, 0.4, 0.3, 0.1, 0, 0.2, 0.4, 0.4, 0.4, 0.4, 0.2, 0, -0.1, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, -0.1, -0.2, -0.1, 0, 0.1, 0.1, 0, -0.1, -0.2]

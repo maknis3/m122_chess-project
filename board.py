@@ -16,7 +16,6 @@ GREEN = (0, 255, 0)
 
 class Board:
     def __init__(self):
-        self.colors = [WHITE, GRAY]
         self.square_size = CHESS_HEIGHT // 8
         self.screen = pygame.display.set_mode((CHESS_WIDTH + MENU_WIDTH, CHESS_HEIGHT))
         pygame.display.set_caption("Chessboard")
@@ -44,6 +43,7 @@ class Board:
             "BLACK": pygame.image.load("images/black_selection.png")
         }
         self.menu_buttons = {}
+        self.board_flip = False
 
     def update_board(self, chess_pieces, selected_square, possible_moves, check_position, winner_positions, white_turn, move_counter):
         self.draw_board(check_position, winner_positions)
@@ -63,10 +63,11 @@ class Board:
         if winner_positions != []:
             for position in winner_positions:
                 winner_squares.append(self.position_to_square(position))
-                
+        square_colors = [WHITE, GRAY]
+        
         for row in range(8):
             for col in range(8):
-                color = self.colors[(row + col) % 2]
+                color = square_colors[(row + col) % 2]
                 if (row, col) == check_square:
                     color = ORANGE
                 elif (row, col) in winner_squares:
@@ -79,8 +80,12 @@ class Board:
             if piece in ("casteling_rights", "en_passant_position", "last_capture_or_pawn_move", "all_pieces"):
                 continue
             for position in range(64):
-                row = position // 8
-                col = position % 8
+                if self.board_flip:
+                    row = 7 - (position // 8)
+                    col = 7 - (position % 8)
+                else:
+                    row = position // 8
+                    col = position % 8
                 if bitboard & (1 << position):
                     x = col * self.square_size
                     y = row * self.square_size
@@ -109,8 +114,13 @@ class Board:
     def mark_possible_moves(self, possible_moves):
         for move in possible_moves:
             square = self.position_to_square(move)
-            y = square[0] * self.square_size
-            x = square[1] * self.square_size
+            
+            if self.board_flip:
+                y = (7 - square[0]) * self.square_size
+                x = (7 - square[1]) * self.square_size
+            else:
+                y = square[0] * self.square_size
+                x = square[1] * self.square_size
 
             center_x, center_y = x + self.square_size // 2, y + self.square_size // 2
 
@@ -125,12 +135,18 @@ class Board:
         
         circle_radius = 35
         circle_distance_border = 50
+        if self.board_flip:
+            white_circle_pos = (CHESS_WIDTH + circle_distance_border, circle_distance_border)
+            black_circle_pos = (CHESS_WIDTH + circle_distance_border, CHESS_HEIGHT - circle_distance_border)
+        else:
+            white_circle_pos = (CHESS_WIDTH + circle_distance_border, CHESS_HEIGHT - circle_distance_border)
+            black_circle_pos = (CHESS_WIDTH + circle_distance_border, circle_distance_border)
         
         if white_turn != None and not game_finished:
             if white_turn:
-                pygame.draw.circle(self.screen, WHITE, (CHESS_WIDTH + circle_distance_border, CHESS_HEIGHT - circle_distance_border), circle_radius)
+                pygame.draw.circle(self.screen, WHITE, white_circle_pos, circle_radius)
             else:
-                pygame.draw.circle(self.screen, BLACK, (CHESS_WIDTH + circle_distance_border, circle_distance_border), circle_radius)
+                pygame.draw.circle(self.screen, BLACK, black_circle_pos, circle_radius)
         
         border_gap = 30
         
@@ -232,8 +248,8 @@ class Board:
             pygame.draw.rect(self.screen, GRAY, (0, 0, MENU_WIDTH + CHESS_WIDTH, CHESS_HEIGHT/2))
             pygame.draw.rect(self.screen, WHITE, (0, CHESS_HEIGHT/2, MENU_WIDTH + CHESS_WIDTH, CHESS_HEIGHT))
 
-            text_one_x, text_one_y = (CHESS_WIDTH / 2) - 100, (CHESS_HEIGHT / 2) - 50
-            text_two_x, text_two_y = (CHESS_WIDTH / 2) - 100, (CHESS_HEIGHT / 2) + 20
+            text_one_x, text_one_y = (CHESS_WIDTH / 2) + 25, (CHESS_HEIGHT / 2) - 50
+            text_two_x, text_two_y = (CHESS_WIDTH / 2) + 55, (CHESS_HEIGHT / 2) + 20
             font_size = 42
             font = pygame.font.SysFont(None, font_size)
             text_surface = font.render("welcome to mychess", True, BLACK, None)
@@ -253,4 +269,7 @@ class Board:
 
             pygame.display.flip()
 
+        if selected_color == "BLACK":
+            self.board_flip = True
+        
         return selected_color

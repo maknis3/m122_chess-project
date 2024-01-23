@@ -68,8 +68,12 @@ class Chess:
         if only_impact:
             for delta_col in [9, 7]:
                 capture_position = (position << delta_col) if direction else (position >> delta_col)
-                if abs(int(math.log(position,2))%8 - int(math.log(capture_position,2))%8) ==1:
-                    moves.append(capture_position)
+                try:
+                    if abs(int(math.log(position,2))%8 - int(math.log(capture_position,2))%8) ==1:
+                        moves.append(capture_position)
+                except Exception as e:
+                    print(f"Error processing the move: {capture_position}  for the boardmatrix: {board_matrix}: {e}")
+                    break
             return moves
         
         for delta_col in [9, 7]:
