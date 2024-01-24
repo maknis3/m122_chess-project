@@ -10,6 +10,8 @@ GRAY = (169, 169, 169)
 DARK_GRAY = (120, 120, 120)
 BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
+LIGHT_BLUE = (191, 239, 255)
+DARK_BLUE = (104, 131, 139)
 RED = (255, 0, 0)
 ORANGE = (255, 165, 0)
 GREEN = (0, 255, 0)
@@ -46,17 +48,28 @@ class Board:
         self.board_flip = False
 
     def update_board(self, chess_pieces, selected_square, possible_moves, check_position, winner_positions, white_turn, move_counter):
-        self.draw_board(check_position, winner_positions)
+        self.draw_board(check_position, winner_positions, possible_moves)
         self.draw_pieces(chess_pieces)
         if selected_square:
             self.mark_selected_square(selected_square)
-        if possible_moves != []:
-            self.mark_possible_moves(possible_moves)
         self.load_menu(white_turn, move_counter, winner_positions != [])
 
-    def draw_board(self, check_position, winner_positions):
+    def draw_board(self, check_position, winner_positions, possible_moves):
         check_square = None
         winner_squares = []
+        possible_squares = []
+        
+        for move in possible_moves:
+            square = self.position_to_square(move)
+            
+            if self.board_flip:
+                y = (7 - square[0])
+                x = (7 - square[1])
+            else:
+                y = square[0]
+                x = square[1]
+                
+            possible_squares.append((y, x))
         
         if check_position:
             check_square = self.position_to_square(check_position)
@@ -64,6 +77,7 @@ class Board:
             for position in winner_positions:
                 winner_squares.append(self.position_to_square(position))
         square_colors = [WHITE, GRAY]
+        possible_square_colors = [LIGHT_BLUE, DARK_BLUE]
         
         for row in range(8):
             for col in range(8):
@@ -72,6 +86,8 @@ class Board:
                     color = ORANGE
                 elif (row, col) in winner_squares:
                     color = GREEN
+                elif (row, col) in possible_squares:
+                    color = possible_square_colors[(row + col) % 2]
                 
                 pygame.draw.rect(self.screen, color, (col * self.square_size, row * self.square_size, self.square_size, self.square_size))
 
@@ -95,37 +111,8 @@ class Board:
         row, col = self.position_to_square(selected_square)
         x = col * self.square_size
         y = row * self.square_size
-        cross_color = RED
         
-        thickness = 5
-        
-        center_x, center_y = x + self.square_size // 2, y + self.square_size // 2
-
-        offset = self.square_size // 6
-
-        start_line1 = (center_x - offset, center_y - offset)
-        end_line1 = (center_x + offset, center_y + offset)
-        start_line2 = (center_x - offset, center_y + offset)
-        end_line2 = (center_x + offset, center_y - offset)
-        
-        pygame.draw.line(self.screen, cross_color, start_line1, end_line1, thickness)
-        pygame.draw.line(self.screen, cross_color, start_line2, end_line2, thickness)
-        
-    def mark_possible_moves(self, possible_moves):
-        for move in possible_moves:
-            square = self.position_to_square(move)
-            
-            if self.board_flip:
-                y = (7 - square[0]) * self.square_size
-                x = (7 - square[1]) * self.square_size
-            else:
-                y = square[0] * self.square_size
-                x = square[1] * self.square_size
-
-            center_x, center_y = x + self.square_size // 2, y + self.square_size // 2
-
-            radius = self.square_size // 2 - 25
-            pygame.draw.circle(self.screen, BLUE, (center_x, center_y), radius, 5)
+        pygame.draw.rect(self.screen, RED, (x, y, self.square_size, self.square_size), 4)
         
     def position_to_square(self, position): # Convert a position (bit index) to a square (row, col)
         return int(math.log(position, 2) // 8), int(math.log(position, 2) % 8)

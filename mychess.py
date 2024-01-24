@@ -1,9 +1,33 @@
-import pygame
-import sys
 import math
 import functools
 from collections import Counter
-from board import Board
+
+ALL_PAWNS_START_POS = 0b00000000_11111111_00000000_00000000_00000000_00000000_11111111_00000000
+ALL_PAWNS_MOVEDTWO_POS = 0b00000000_00000000_00000000_11111111_11111111_00000000_00000000_00000000
+ALL_PAWNS_LASTRANK_POS = 0b11111111_00000000_00000000_00000000_00000000_00000000_00000000_11111111
+WHITE_KING_START_POS = 0b01000010_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+BLACK_KING_START_POS = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00010000
+WHITE_ROOK_QUEENSIDE_POS = 0b00000001_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+WHITE_ROOK_KINGSIDE_POS = 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+BLACK_ROOK_QUEENSIDE_POS = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001
+BLACK_ROOK_KINGSIDE_POS = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_10000000
+POS_B8 = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000010
+POS_C8 = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000100
+POS_D8 = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00001000
+POS_F8 = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00100000
+POS_G8 = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_01000000
+POS_B1 = 0b00000010_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+POS_C1 = 0b00000100_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+POS_D1 = 0b00001000_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+POS_F1 = 0b00100000_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+POS_G1 = 0b01000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+WHITE_CAN_CASTLE_QUEENSIDE = 0b1_0_0_0
+WHITE_CAN_CASTLE_KINGSIDE = 0b0_1_0_0
+BLACK_CAN_CASTLE_QUEENSIDE = 0b0_0_1_0
+BLACK_CAN_CASTLE_KINGSIDE = 0b0_0_0_1
+WHITE_CAN_CASTLE = 0b1_1_0_0
+BLACK_CAN_CASTLE = 0b0_0_1_1
+
 
 class Chess:
     def __init__(self, board):
@@ -84,7 +108,7 @@ class Chess:
         forward_square = (position << 8) if direction else (position >> 8)
         if self.is_empty_position(board_matrix, forward_square):
             moves.append(forward_square)
-            if (71776119061282560 | position) == 71776119061282560:
+            if (ALL_PAWNS_START_POS | position) == ALL_PAWNS_START_POS:
                 double_forward_position = (position << 16) if direction else (position >> 16)
                 if self.is_empty_position(board_matrix, double_forward_position):
                     moves.append(double_forward_position)
@@ -112,11 +136,11 @@ class Chess:
                 else:
                     break
                 
-        if not only_impact:
-            if position in (1, 72057594037927936) and self.can_castle_queenside(piece_color, board_matrix):
-                moves.append(1152921504606846976 if piece_color == "WHITE" else 16)
-            if position in (128, 9223372036854775808) and self.can_castle_kingside(piece_color, board_matrix):
-                moves.append(1152921504606846976 if piece_color == "WHITE" else 16)
+        if not only_impact: # Casteling squares not attacked when calculating impact
+            if position in (BLACK_ROOK_QUEENSIDE_POS, WHITE_ROOK_QUEENSIDE_POS) and self.can_castle_queenside(piece_color, board_matrix):
+                moves.append(WHITE_KING_START_POS if piece_color == "WHITE" else BLACK_KING_START_POS)
+            if position in (BLACK_ROOK_KINGSIDE_POS, WHITE_ROOK_KINGSIDE_POS) and self.can_castle_kingside(piece_color, board_matrix):
+                moves.append(WHITE_KING_START_POS if piece_color == "WHITE" else BLACK_KING_START_POS)
                 
         return moves
     
@@ -183,17 +207,17 @@ class Chess:
                     if only_impact or not self.is_position_attacked_by(opponent_color, target_position, board_matrix):
                         moves.append(target_position)
                         
-        if not only_impact:
-            if position == 1152921504606846976 and piece_color == "WHITE":
+        if not only_impact: # Casteling squares not attacked when calculating impact
+            if position == WHITE_KING_START_POS and piece_color == "WHITE":
                 if self.can_castle_queenside(piece_color, board_matrix):
-                    moves.append(72057594037927936)
+                    moves.append(WHITE_ROOK_QUEENSIDE_POS)
                 if self.can_castle_kingside(piece_color, board_matrix):
-                    moves.append(9223372036854775808)
-            elif position == 16 and piece_color == "BLACK":
+                    moves.append(WHITE_ROOK_KINGSIDE_POS)
+            elif position == BLACK_KING_START_POS and piece_color == "BLACK":
                 if self.can_castle_queenside(piece_color, board_matrix):
-                    moves.append(1)
+                    moves.append(BLACK_ROOK_QUEENSIDE_POS)
                 if self.can_castle_kingside(piece_color, board_matrix):
-                    moves.append(128)
+                    moves.append(BLACK_ROOK_KINGSIDE_POS)
 
         return moves
 
@@ -216,12 +240,12 @@ class Chess:
             board_matrix["last_capture_or_pawn_move"] = move_counter
 
         if moved_piece_type in ("KING", "ROOK"): # Casteling logic
-            if (start_position in (72057594037927936, 1152921504606846976, 1, 16)) and (end_position in (72057594037927936, 1152921504606846976, 1, 16)) and self.can_castle_queenside(moved_piece_color, board_matrix):
+            if (start_position in (WHITE_ROOK_QUEENSIDE_POS, WHITE_KING_START_POS, BLACK_ROOK_QUEENSIDE_POS, BLACK_KING_START_POS)) and (end_position in (WHITE_ROOK_QUEENSIDE_POS, WHITE_KING_START_POS, BLACK_ROOK_QUEENSIDE_POS, BLACK_KING_START_POS)) and self.can_castle_queenside(moved_piece_color, board_matrix):
                 self.perform_castle_queenside(moved_piece_color, board_matrix)
                 self.sum_pieces(board_matrix)
                 board_matrix["en_passant_position"] = 0
                 return False
-            elif (start_position in (1152921504606846976, 9223372036854775808, 16, 128)) and (end_position in (1152921504606846976, 9223372036854775808, 16, 128)) and self.can_castle_kingside(moved_piece_color, board_matrix):
+            elif (start_position in (WHITE_ROOK_KINGSIDE_POS, WHITE_KING_START_POS, BLACK_ROOK_KINGSIDE_POS, BLACK_KING_START_POS)) and (end_position in (WHITE_ROOK_KINGSIDE_POS, WHITE_KING_START_POS, BLACK_ROOK_KINGSIDE_POS, BLACK_KING_START_POS)) and self.can_castle_kingside(moved_piece_color, board_matrix):
                 self.perform_castle_kingside(moved_piece_color, board_matrix)
                 self.sum_pieces(board_matrix)
                 board_matrix["en_passant_position"] = 0
@@ -236,14 +260,14 @@ class Chess:
                 else:
                     board_matrix["PAWN_WHITE"] &= ~(end_position >> 8)
             board_matrix["en_passant_position"] = None
-            if (start_position | 71776119061282560) == 71776119061282560 and (end_position | 1099494850560) == 1099494850560: # Save en passant position if pawn moved 2 ranks
+            if (start_position | ALL_PAWNS_START_POS) == ALL_PAWNS_START_POS and (end_position | ALL_PAWNS_MOVEDTWO_POS) == ALL_PAWNS_MOVEDTWO_POS: # Save en passant position if pawn moved 2 ranks
                 if moved_piece_color == "WHITE":
                     board_matrix["en_passant_position"] = (start_position >> 8)
                 else:
                     board_matrix["en_passant_position"] = (start_position << 8)
-            if (end_position | -72057594037927681) == -72057594037927681: # Promote pawn on last rank
+            if (end_position | ALL_PAWNS_LASTRANK_POS) == ALL_PAWNS_LASTRANK_POS: # Promote pawn on last rank
                 self.pawn_promotion(start_position, end_position, board_matrix, moved_piece_color, promotion_piece_type)
-                board_matrix["en_passant_position"] = 0
+                board_matrix["en_passant_position"] = None
                 return False
         else:
             board_matrix["en_passant_position"] = None
@@ -316,87 +340,87 @@ class Chess:
     
     def can_castle_queenside(self, color, board_matrix):
         if color == "WHITE":
-            if not ((board_matrix["casteling_rights"] & 8) == 8):
+            if not ((board_matrix["casteling_rights"] & WHITE_CAN_CASTLE_QUEENSIDE) == WHITE_CAN_CASTLE_QUEENSIDE):
                 return False
-            elif not (self.is_empty_position(board_matrix, 144115188075855872) and self.is_empty_position(board_matrix, 288230376151711744) and self.is_empty_position(board_matrix, 576460752303423488)):
+            elif not (self.is_empty_position(board_matrix, POS_B1) and self.is_empty_position(board_matrix, POS_C1) and self.is_empty_position(board_matrix, POS_D1)):
                 return False
-            elif self.is_position_attacked_by("BLACK", 144115188075855872, board_matrix) or self.is_position_attacked_by("BLACK", 288230376151711744, board_matrix) or self.is_position_attacked_by("BLACK", 576460752303423488, board_matrix):
+            elif self.is_position_attacked_by("BLACK", POS_B1, board_matrix) or self.is_position_attacked_by("BLACK", POS_C1, board_matrix) or self.is_position_attacked_by("BLACK", POS_D1, board_matrix):
                 return False
         else:
-            if not ((board_matrix["casteling_rights"] & 2) == 2):
+            if not ((board_matrix["casteling_rights"] & BLACK_CAN_CASTLE_QUEENSIDE) == BLACK_CAN_CASTLE_QUEENSIDE):
                 return False
-            elif not (self.is_empty_position(board_matrix, 2) and self.is_empty_position(board_matrix, 4) and self.is_empty_position(board_matrix, 8)):
+            elif not (self.is_empty_position(board_matrix, POS_B8) and self.is_empty_position(board_matrix, POS_C8) and self.is_empty_position(board_matrix, POS_D8)):
                 return False
-            elif self.is_position_attacked_by("WHITE", 2, board_matrix) or self.is_position_attacked_by("WHITE", 4, board_matrix) or self.is_position_attacked_by("WHITE", 8, board_matrix):
+            elif self.is_position_attacked_by("WHITE", POS_B8, board_matrix) or self.is_position_attacked_by("WHITE", POS_C8, board_matrix) or self.is_position_attacked_by("WHITE", POS_D8, board_matrix):
                 return False
         return True
     
     def can_castle_kingside(self, color, board_matrix):
         if color == "WHITE":
-            if not ((board_matrix["casteling_rights"] & 4) == 4):
+            if not ((board_matrix["casteling_rights"] & WHITE_CAN_CASTLE_KINGSIDE) == WHITE_CAN_CASTLE_KINGSIDE):
                 return False
-            elif not (self.is_empty_position(board_matrix, 2305843009213693952) and self.is_empty_position(board_matrix, 4611686018427387904)):
+            elif not (self.is_empty_position(board_matrix, POS_F1) and self.is_empty_position(board_matrix, POS_G1)):
                 return False
-            elif self.is_position_attacked_by("BLACK", 2305843009213693952, board_matrix) or self.is_position_attacked_by("BLACK", 4611686018427387904, board_matrix):
+            elif self.is_position_attacked_by("BLACK", POS_F1, board_matrix) or self.is_position_attacked_by("BLACK", POS_G1, board_matrix):
                 return False
         else:
-            if not ((board_matrix["casteling_rights"] & 1) == 1):
+            if not ((board_matrix["casteling_rights"] & BLACK_CAN_CASTLE_KINGSIDE) == BLACK_CAN_CASTLE_KINGSIDE):
                 return False
-            elif not (self.is_empty_position(board_matrix, 32) and self.is_empty_position(board_matrix, 64)):
+            elif not (self.is_empty_position(board_matrix, POS_F8) and self.is_empty_position(board_matrix, POS_G8)):
                 return False
-            elif self.is_position_attacked_by("WHITE", 32, board_matrix) or self.is_position_attacked_by("WHITE", 64, board_matrix):
+            elif self.is_position_attacked_by("WHITE", POS_F8, board_matrix) or self.is_position_attacked_by("WHITE", POS_G8, board_matrix):
                 return False
         return True
     
     def update_casteling_rights(self, start_position, moved_piece_color, board_matrix):
         if moved_piece_color == "WHITE":
-            if start_position == 1152921504606846976:
-                board_matrix["casteling_rights"] &= ~(12)
+            if start_position == WHITE_KING_START_POS:
+                board_matrix["casteling_rights"] &= ~(WHITE_CAN_CASTLE)
                 return
             elif start_position == 72057594037927936:
-                board_matrix["casteling_rights"] &= ~(8)
+                board_matrix["casteling_rights"] &= ~(WHITE_CAN_CASTLE_QUEENSIDE)
                 return
             elif start_position == 9223372036854775808:
-                board_matrix["casteling_rights"] &= ~(4)
+                board_matrix["casteling_rights"] &= ~(WHITE_CAN_CASTLE_KINGSIDE)
                 return
         else:
-            if start_position == 16:
-                board_matrix["casteling_rights"] &= ~(3)
+            if start_position == BLACK_KING_START_POS:
+                board_matrix["casteling_rights"] &= ~(BLACK_CAN_CASTLE)
                 return
             elif start_position == 1:
-                board_matrix["casteling_rights"] &= ~(2)
+                board_matrix["casteling_rights"] &= ~(BLACK_CAN_CASTLE_QUEENSIDE)
                 return
             elif start_position == 128:
-                board_matrix["casteling_rights"] &= ~(1)
+                board_matrix["casteling_rights"] &= ~(BLACK_CAN_CASTLE_KINGSIDE)
                 return
             
     def perform_castle_queenside(self, piece_color, board_matrix):
         if piece_color == "WHITE":
-            board_matrix["KING_WHITE"] &= ~(1152921504606846976)
-            board_matrix["KING_WHITE"] |= (288230376151711744)
-            board_matrix["ROOK_WHITE"] &= ~(72057594037927936)
-            board_matrix["ROOK_WHITE"] |= (576460752303423488)
-            board_matrix["casteling_rights"] &= ~(12)
+            board_matrix["KING_WHITE"] &= ~(WHITE_KING_START_POS)
+            board_matrix["KING_WHITE"] |= (POS_C1)
+            board_matrix["ROOK_WHITE"] &= ~(WHITE_ROOK_QUEENSIDE_POS)
+            board_matrix["ROOK_WHITE"] |= (POS_D1)
+            board_matrix["casteling_rights"] &= ~(WHITE_CAN_CASTLE)
         else:
-            board_matrix["KING_BLACK"] &= ~(16)
-            board_matrix["KING_BLACK"] |= (4)
-            board_matrix["ROOK_BLACK"] &= ~(1)
-            board_matrix["ROOK_BLACK"] |= (8)
-            board_matrix["casteling_rights"] &= ~(3)
+            board_matrix["KING_BLACK"] &= ~(BLACK_KING_START_POS)
+            board_matrix["KING_BLACK"] |= (POS_C8)
+            board_matrix["ROOK_BLACK"] &= ~(BLACK_ROOK_QUEENSIDE_POS)
+            board_matrix["ROOK_BLACK"] |= (POS_D8)
+            board_matrix["casteling_rights"] &= ~(BLACK_CAN_CASTLE)
     
     def perform_castle_kingside(self, piece_color, board_matrix):
         if piece_color == "WHITE":
-            board_matrix["KING_WHITE"] &= ~(1152921504606846976)
-            board_matrix["KING_WHITE"] |= (4611686018427387904)
-            board_matrix["ROOK_WHITE"] &= ~(9223372036854775808)
-            board_matrix["ROOK_WHITE"] |= (2305843009213693952)
-            board_matrix["casteling_rights"] &= ~(12)
+            board_matrix["KING_WHITE"] &= ~(WHITE_KING_START_POS)
+            board_matrix["KING_WHITE"] |= (POS_G1)
+            board_matrix["ROOK_WHITE"] &= ~(WHITE_ROOK_KINGSIDE_POS)
+            board_matrix["ROOK_WHITE"] |= (POS_F1)
+            board_matrix["casteling_rights"] &= ~(WHITE_CAN_CASTLE)
         else:
-            board_matrix["KING_BLACK"] &= ~(16)
-            board_matrix["KING_BLACK"] |= (64)
-            board_matrix["ROOK_BLACK"] &= ~(128)
-            board_matrix["ROOK_BLACK"] |= (32)
-            board_matrix["casteling_rights"] &= ~(3)
+            board_matrix["KING_BLACK"] &= ~(BLACK_KING_START_POS)
+            board_matrix["KING_BLACK"] |= (POS_G8)
+            board_matrix["ROOK_BLACK"] &= ~(BLACK_ROOK_KINGSIDE_POS)
+            board_matrix["ROOK_BLACK"] |= (POS_F8)
+            board_matrix["casteling_rights"] &= ~(BLACK_CAN_CASTLE)
             
     def pawn_promotion(self, start_position, end_position, board_matrix, moved_piece_color, promotion_piece_type):
         if not promotion_piece_type:
