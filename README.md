@@ -19,15 +19,20 @@ The primary goal for players is to strategize and make moves that lead to the ch
 
 ## Getting Started
 To get started with the chess engine, follow these steps:
-1. Clone the repository:
+1. Make sure [python](https://www.python.org/downloads/) is installed on your device. 
+2. Install pygame.
+    ```bash
+    pip install pygame
+    ```
+3. Clone the repository:
     ```bash
     git clone https://github.com/maknis3/m122_chess-project.git
     ```
-2. Navigate to the project directory:
+4. Navigate to the project directory:
     ```bash
     cd M122_CHESS-PROJECT
     ```
-3. Execute the main Python file:
+5. Execute the main Python file:
     ```bash
     python main.py
     ```
