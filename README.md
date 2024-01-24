@@ -41,11 +41,12 @@ Open-source PGN-files can be found on the [FICS Games Database](https://www.fics
 
 ### How to Use the PGN to JSON Converter
 1. **Ensure Python is Installed**: Make sure you have Python installed on your system.
-2. **Run the Converter Script**: Execute the converter script, providing the path to the PGN file as an argument.
+2. **Ensure Python is Installed**: Change the lines 208 and 209 of the pgn_to_json.py file to your dir.
+3. **Run the Converter Script**: Execute the converter script.
     ```bash
-    python pgn_to_json_converter.py your_chess_game.pgn
+    python pgn_to_json.py
     ```
-3. **Output JSON File**: The converter will generate a JSON file containing the converted game data.
+4. **Output JSON File**: The converter will generate a JSON file containing the converted game data.
 
 ## Chess Engine
 My implementation of a chess engine, as mentioned above, is based on a [MiniMax](https://en.wikipedia.org/wiki/Minimax) algorithm with [alpha-beta-pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning). The evaluation of the game-state is implemented in the evaluate method. This method is by far not optimal or efficient. The evaluation is based on the present pieces, their position, and if a check is present. The following implementations could enhance the evaluations but also further slow down the engine:
@@ -54,6 +55,16 @@ My implementation of a chess engine, as mentioned above, is based on a [MiniMax]
 - **Exchange chain tracking**: In chess, a lot of strategic play takes place, where each player tries to have more influence over a square than the other. In that instance, it would be important to follow the exchange-chain to the end and see if one comes out on top. This would further enhance the evaluation of each move-tree at the cost of more calculation. This has been partially implemented.
 - **Improved opening preparation**: The current opening preparation is based on all standard, over 2000 rated games of 2023 on the FICS Database. In the implementation, the probability for each move is equal, but in reality, they aren't. A move like e4 is much more common and promising compared to a4. Implementing the frequency of each move to the opening preparation would further enhance the set-up of the engine in the opening stage and therefore promise a better outcome.
 - **Flexible promotion choice**: At the moment, the engine can't choose its promotion piece. For simplicity, it's restricted to promoting to a queen. The implementation of this would be rather easy, but that's not really a big weakness of the engine at the moment, so has been left to do for a later date.
+
+## Next?
+Implementing chess was a fun and educational challenge. Moving forward, I have exciting ideas to further enhance this project and explore new projects. Here's a glimpse into the future developments:
+- **More Features**: Continuing to evolve the engine, I plan to introduce several new features. Improving the engine's logic is a priority, and enhancements to the menu are in the pipeline. This includes adding a reset button, displaying the engine's evaluation for the current board, implementing a board-flipping button, and creating a display for all captured pieces. Additionally, I'm intrigued by the challenge of incorporating a drag-and-drop mechanic for chess pieces, similar to platforms like [chess.com](https://www.chess.com/home), using the pygame library.
+- **User Interface Enhancements**: Elevating the overall user experience is crucial. I intend to explore opportunities for UI enhancements, such as refining visual design elements, incorporating animations, and introducing interactive features to make the gameplay more engaging. In this aspect I'd like to switch from pygame to something newer and user friendlier.
+- **Online Multiplayer**: Maybe the implementation of an online multiplayer mode would be a fun challenge. This feature will enable players to engage in chess matches with opponents over the internet.
+- **Mobile App Version**: I'm considering developing a mobile app version of the chess engine. 
+- **Other Language**: Despite my love for Python, I'm eager to explore implementations in other languages, such as C++. This exploration will focus on creating a more optimized solution tailored to the specific challenges posed by a chess engine.
+- **Chess Library Integration**: Throughout this process, I haven't extensively explored existing chess libraries for Python. Considering the fun challenges that might arise, I'm contemplating the use of established libraries or APIs to enhance specific functionalities within the project.
+The journey doesn't end here, and I'm excited about the possibilities that lie ahead, if there is time I'd like to continue my development. Your feedback and contributions are always welcome!
 
 ## Sources
 - [Chess piece images](https://greenchess.net/info.php?item=downloads)

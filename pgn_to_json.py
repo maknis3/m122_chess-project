@@ -238,24 +238,3 @@ if __name__ == "__main__":
     print(f"Finished move conversion for {number_of_processed_moves} moves")
     print(f"Time spent: {time.time() - start_time}")
     print(f"Games skipped or partially skipped: {number_of_skipped_games}")
-    
-    
-    
-"""
-data = {"games": [["e4", "c6", "Nf3", "e5"]]}
-
-print(data)
-
-try:
-    opening_moves_black, opening_moves_white, number_of_skipped_games, number_of_processed_moves = process_games(data['games'])
-except Exception as e:
-    print(f"Error processing games: {e}")
-new_data = {"BLACK": opening_moves_black, "WHITE": opening_moves_white}
-try:
-    output_file_name = pgn_file_path.stem + '.json'
-    output_file_path = json_file_dir / output_file_name
-    with open(output_file_path, 'w', encoding='utf-8') as json_file:
-        json.dump(new_data, json_file, indent=4)
-except Exception as e:
-    print(f"Error writing to JSON file: {e}")
-"""
