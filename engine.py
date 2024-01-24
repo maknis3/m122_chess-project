@@ -52,7 +52,7 @@ class Engine:
                 print(f"Search time: {(time.time() - timestamp):.2f}s")
                 return from_position, to_position
             else:
-                print("No suitable move found in opening prep for key: " + key)
+                print("No suitable move found in opening prep.")
         
         best_eval = -100000
         best_from_position = None
