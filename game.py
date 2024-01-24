@@ -29,11 +29,16 @@ class ChessGame:
         self.winner_positions = []
         self.move_counter = 0
         self.board = Board()
-        pygame.init()
-        self.player_color = self.board.color_selection()
-        self.board_flip = True if self.player_color == "BLACK" else False
         self.chess = Chess(self.board)
-        self.engine = Engine(self.chess, self.player_color)
+        pygame.init()
+        self.singleplayer = self.board.playmode_selection()
+        if self.singleplayer:
+            self.player_color = self.board.color_selection()
+            self.board_flip = True if self.player_color == "BLACK" else False
+            self.engine = Engine(self.chess, self.player_color)
+        else:
+            self.board_flip = False
+            self.player_color = "WHITE"
 
     def start_game(self):
         self.board.update_board(self.board_matrix, None, [], None, [], None, 0)
@@ -43,7 +48,7 @@ class ChessGame:
         possible_moves = []
         self.chess.archive_board(self.board_matrix)
         
-        if self.player_color == "BLACK":
+        if self.singleplayer and self.player_color == "BLACK":
             self.engine_turn()
 
         while running:
@@ -80,7 +85,8 @@ class ChessGame:
             calculation_selected_position = None
             displayed_selected_position = None
             self.end_turn()
-            if self.winner_positions == []:
+            
+            if self.singleplayer and self.winner_positions == []:
                 self.engine_turn()
             
         elif self.chess.is_own_piece(calculation_selected_position, self.player_color, self.board_matrix):
@@ -102,11 +108,13 @@ class ChessGame:
         self.check_position = None
         self.chess.archive_board(self.board_matrix)
         if self.chess.check_threefold_repetition() or self.chess.check_fifty_move_rule(self.move_counter, self.board_matrix):
-            print("is threefold or fifty")
             return
         
         self.move_counter += 1
         self.white_turn = not self.white_turn
+        
+        if not self.singleplayer:
+            self.player_color = "BLACK" if self.player_color == "WHITE" else "WHITE"
         
         if self.chess.is_in_check(self.white_turn, self.board_matrix):
             if self.chess.is_in_checkmate(self.white_turn, self.board_matrix):

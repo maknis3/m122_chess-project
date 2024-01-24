@@ -44,6 +44,10 @@ class Board:
             "WHITE": pygame.image.load("images/white_selection.png"),
             "BLACK": pygame.image.load("images/black_selection.png")
         }
+        self.playmode_selection_icons = {
+            "SINGLE": pygame.image.load("images/singleplayer_icon.png"),
+            "MULTI": pygame.image.load("images/multiplayer_icon.png")
+        }
         self.menu_buttons = {}
         self.board_flip = False
 
@@ -260,3 +264,56 @@ class Board:
             self.board_flip = True
         
         return selected_color
+    
+    def playmode_selection(self):
+        selected_mode = None
+        
+        button_type = ["SINGLE", "MULTI"]
+        button_width, button_height = 200, 200
+        button_gap = (CHESS_HEIGHT / 2) - button_height
+        start_x = (CHESS_WIDTH + MENU_WIDTH - button_width) / 2
+        start_y = ((CHESS_HEIGHT / 2) - button_height) / 2
+
+        buttons = {}
+        running = True
+        
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    for mode, rect in buttons.items():
+                        if rect.collidepoint(event.pos):
+                            selected_mode = mode
+                            running = False
+
+            pygame.draw.rect(self.screen, GRAY, (0, 0, MENU_WIDTH + CHESS_WIDTH, CHESS_HEIGHT/2))
+            pygame.draw.rect(self.screen, WHITE, (0, CHESS_HEIGHT/2, MENU_WIDTH + CHESS_WIDTH, CHESS_HEIGHT))
+
+            text_one_x, text_one_y = (CHESS_WIDTH / 2) + 25, (CHESS_HEIGHT / 2) - 50
+            text_two_x, text_two_y = (CHESS_WIDTH / 2) + 55, (CHESS_HEIGHT / 2) + 20
+            font_size = 42
+            font = pygame.font.SysFont(None, font_size)
+            text_surface = font.render("welcome to mychess", True, BLACK, None)
+            self.screen.blit(text_surface, (text_one_x, text_one_y))
+            text_surface = font.render("select play-mode", True, BLACK, None)
+            self.screen.blit(text_surface, (text_two_x, text_two_y))
+            
+            y = start_y
+            for mode in button_type:
+                rect = pygame.Rect(start_x, y, button_width, button_height)
+                buttons[mode] = rect
+                button_color = WHITE if mode == "SINGLE" else GRAY
+                pygame.draw.rect(self.screen, button_color, rect)
+                self.screen.blit(self.playmode_selection_icons[mode], (start_x + 36, y + 36))
+
+                y += button_height + button_gap
+
+            pygame.display.flip()
+
+        if selected_mode == "MULTI":
+            self.board_flip = False
+        
+        return selected_mode == "SINGLE"
