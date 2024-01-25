@@ -108,11 +108,11 @@ class Engine:
                 if piece_type == "PAWN":
                     temp_eval += PAWN_VALUE
                     if move_counter > ENDGAME_THRESHOLD:
-                        temp_eval += PAWN_END_POS_BONUS[position_exponent if maximazing_player else (63 - position_exponent)]
+                        temp_eval += PAWN_END_POS_BONUS[position_exponent if piece_color == "BLACK" else (63 - position_exponent)]
                     else:
-                        temp_eval += PAWN_START_POS_BONUS[position_exponent if maximazing_player else (63 - position_exponent)]
+                        temp_eval += PAWN_START_POS_BONUS[position_exponent if piece_color == "BLACK" else (63 - position_exponent)]
                 elif piece_type == "ROOK":
-                    temp_eval += ROOK_VALUE + ROOK_POS_BONUS[position_exponent if maximazing_player else (63 - position_exponent)]
+                    temp_eval += ROOK_VALUE + ROOK_POS_BONUS[position_exponent if piece_color == "BLACK" else (63 - position_exponent)]
                 elif piece_type == "KNIGHT":
                     temp_eval += KNIGHT_VALUE + KNIGHT_POS_BONUS[position_exponent]
                 elif piece_type == "BISHOP":
@@ -121,10 +121,10 @@ class Engine:
                     temp_eval += QUEEN_VALUE + BISHOP_POS_BONUS[position_exponent]
                 elif piece_type == "KING":
                     if move_counter > ENDGAME_THRESHOLD:
-                        temp_eval += KING_END_POS_BONUS[position_exponent if maximazing_player else (63 - position_exponent)]
+                        temp_eval += KING_END_POS_BONUS[position_exponent if piece_color == "BLACK" else (63 - position_exponent)]
                     else:
-                        temp_eval += KING_START_POS_BONUS[position_exponent if maximazing_player else (63 - position_exponent)]
-                eval += temp_eval if maximazing_player else -temp_eval
+                        temp_eval += KING_START_POS_BONUS[position_exponent if piece_color == "BLACK" else (63 - position_exponent)]
+                eval += temp_eval if piece_color == engine_color else -temp_eval
 
         self.board_evaluations[board_matrix_hashed] = eval
         return eval
@@ -144,7 +144,7 @@ class Engine:
                             depth += 1
                         eval = self.minimax(temp_board, depth - 1, alpha, beta, False, move_counter + 1, engine_color, player_color)
                         maxEval = max(maxEval, eval)
-                        alpha = max(alpha, eval)
+                        alpha = max(alpha, maxEval)
                         if beta <= alpha:
                             break
             return maxEval
@@ -158,7 +158,7 @@ class Engine:
                         self.chess.move_piece(from_position, to_position, temp_board)
                         eval = self.minimax(temp_board, depth - 1, alpha, beta, True, move_counter + 1, engine_color, player_color)
                         minEval = min(minEval, eval)
-                        beta = min(beta, eval)
+                        beta = min(beta, minEval)
                         if beta <= alpha:
                             break
             return minEval
