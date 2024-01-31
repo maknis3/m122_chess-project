@@ -54,7 +54,7 @@ class Engine:
             else:
                 print("No suitable move found in opening prep.")
         
-        best_eval = -100000
+        best_eval = -1000000
         best_from_position = None
         best_to_position = None
         self.number_of_evaluations = 0
